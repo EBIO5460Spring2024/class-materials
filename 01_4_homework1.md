@@ -1,0 +1,50 @@
+### Week 1 homework
+
+Read about predictive performance and cross-validation, and setup Git/GitHub. This homework is not assessed. The reading is best done before class on Tuesday. Aim to finish everything before class on Thursday. If you're having Git troubles, ask on Piazza, and help each other out.
+
+
+
+#### 1. Reading
+
+Read the following before class on Tuesday:
+
+James et al. (2021) An Introduction to Statistical Learning
+
+* Foundations: pp 15-19 (but not the section titled "inference")
+* Assessing model accuracy: pp 28-42.
+* Cross validation: pp 198-208.
+
+A link to the text is on the [class-materials](https://github.com/EBIO5460Spring2024/class-materials) landing page.
+
+
+
+#### 2. Git & GitHub refresher or intro
+
+If you are new to Git and GitHub, or you need a git refresher, you can use the tutorials from fall 2022 [here](https://github.com/EBIO5460Fall2022/class-materials/tree/main/skills_tutorials). Relevant sections are:
+
+* [git00_resources.md](https://github.com/EBIO5460Fall2022/class-materials/blob/main/skills_tutorials/git00_resources.md)
+* [git01_setup.md](https://github.com/EBIO5460Fall2022/class-materials/blob/main/skills_tutorials/git01_setup.md) (tailored to R; for Python users see git00_resources)
+* [git03_basics.md](https://github.com/EBIO5460Fall2022/class-materials/blob/main/skills_tutorials/git03_basics.md)
+* [git04_amend.md](https://github.com/EBIO5460Fall2022/class-materials/blob/main/skills_tutorials/git04_amend.md)
+* [git06_gitgui.md](https://github.com/EBIO5460Fall2022/class-materials/blob/main/skills_tutorials/git06_gitgui.md)
+
+
+
+
+#### 3. Take control of your GitHub repo for this class
+
+First, email me your GitHub username so I can add you to the class organization. I will then set up a GitHub repo for you that is within the private GitHub space for this class. I will email you when it's ready to go. This repo is not public (i.e. not open to the world). You and I both have write access to this repo. Clone it to your computer using RStudio (or another method if you prefer).
+
+1. Go to the class GitHub organization: https://github.com/EBIO5460Spring2024.
+2. Find your repo. It should be visible on the `Repositories` tab. Your repo is called `ml4e_firstnamelastinitial`.
+3. From the green `Code` button in your repo on GitHub, copy the repo's URL to the clipboard.
+4. Clone the repo to an RStudio project on your computer.
+   1. File > New Project > Version Control > Git.
+   2. In `Repository URL`, paste the URL; leave `Project directory name` blank; browse to where you want to put it; click `Create Project`.
+
+
+In the repository you just cloned, you will find three files.
+
+1. A file with extension `.Rproj`. This file was created by RStudio. To open your project in RStudio, double click the file's icon. When RStudio opens, you will be in the working directory for the project.
+2. `README.md`. This file was created by GitHub. This is a plain text file with extension `.md`, indicating that it is a file in Markdown format. You can edit this file using a text editor.
+3. `.gitignore`. This file was created by RStudio but it is a file used by Git. This file tells Git which files or types of files to ignore in your repository (i.e. files that will not be under version control). By default, RStudio tells Git to ignore several files including `.Rhistory` and `.Rdata` because it usually doesn't make sense to track these temporary files. You can use a text editor to add other files to `.gitignore`.
