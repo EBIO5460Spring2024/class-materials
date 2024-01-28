@@ -18,3 +18,5 @@ Pronouns: he, him, his
 This repository includes lecture slides (pdf), code, and homework instructions. For the most part, where code is concerned you want to view the markdown (`.md`) files in your web browser from GitHub.com. These markdown files are knitted from the R code. You can also run the R code on your computer from the `.R` files.
 
 This is the second semester in a graduate-level "data science for ecology" sequence. Semester 1 is [here](https://github.com/EBIO5460Fall2022/class-materials).
+
+Previous iteration: [Machine Learning for Ecology 2022](https://github.com/EBIO5460Spring2022/class-materials).
