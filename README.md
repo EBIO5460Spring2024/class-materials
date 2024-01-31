@@ -9,7 +9,7 @@ Pronouns: he, him, his
 * [Timetable](00_timetable.md): what topics we covered and when
 * Location: Ramaley N183, Tue/Thu 3:30 - 4:45
 * Office hours: any time via zoom, arrange by email
-* Zoom: as needed and for office hours, 995 5569 4569
+* **Zoom: 995 5569 4569**, as needed and for office hours
 * Text: [James et al. 2021](https://www.statlearning.com/) (2023 corrected version; both R and Python editions)
 * [Google Drive](https://drive.google.com/drive/folders/16jMJk5DqKvwx_KS2gcOklBQhBqxKetmM?usp=sharing): anything not open access, audio and zoom recording links, collaborative notes etc
 * [Piazza](https://piazza.com/colorado/fall2023/ebio5460/home): help, questions, discussion
