@@ -1,20 +1,12 @@
-### Week 1 homework
+### Homework to get started
 
-Read about predictive performance and cross-validation, and setup Git/GitHub. This homework is not assessed. The reading is best done before class on Tuesday. Aim to finish everything before class on Thursday. If you're having Git troubles, ask on Piazza, and help each other out.
+See also reading for next week. This homework is not assessed. Aim to finish everything before class on Thursday. If you're having Git troubles, ask on Piazza, and help each other out.
 
 
 
-#### 1. Reading
+#### 1. Email me your Github username
 
-Read the following before class on Tuesday:
-
-James et al. (2021) An Introduction to Statistical Learning
-
-* Foundations: pp 15-19 (but not the section titled "inference")
-* Assessing model accuracy: pp 28-42.
-* Cross validation: pp 198-208.
-
-A link to the text is on the [class-materials](https://github.com/EBIO5460Spring2024/class-materials) landing page.
+If you don't already have a GitHub account, sign up for one. Email me your GitHub username so I can add you to the class organization. This is where you will submit assignments.
 
 
 
@@ -33,7 +25,7 @@ If you are new to Git and GitHub, or you need a git refresher, you can use the t
 
 #### 3. Take control of your GitHub repo for this class
 
-First, email me your GitHub username so I can add you to the class organization. I will then set up a GitHub repo for you that is within the private GitHub space for this class. I will email you when it's ready to go. This repo is not public (i.e. not open to the world). You and I both have write access to this repo. Clone it to your computer using RStudio (or another method if you prefer).
+After you send me your GitHub username, I'll set up a GitHub repo for you that is within the private GitHub space for this class. I'll email you when it's ready to go. This repo is not public (i.e. not open to the world). You and I both have write access to this repo. Clone it to your computer using whatever method you prefer. For example, if you are using Git via RStudio :
 
 1. Go to the class GitHub organization: https://github.com/EBIO5460Spring2024.
 2. Find your repo. It should be visible on the `Repositories` tab. Your repo is called `ml4e_firstnamelastinitial`.
