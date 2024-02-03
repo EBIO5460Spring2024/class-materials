@@ -1,6 +1,10 @@
 ### Assignment 1
 
-Due: Thursday 1 Feb 11:59 PM.
+**Due:** Thursday 1 Feb 11:59 PM
+
+**Grading criteria:** Complete all the check boxes. On time submission.
+
+**Percent of grade:** 7%
 
 
 
@@ -25,7 +29,15 @@ We can use the CV algorithm that we coded in class to do LOOCV. But LOOCV is a s
 # CV_error = mean error across points
 ```
 
-Use the first section of [02_2_ants_cv_polynomial.R](02_2_ants_cv_polynomial.R) to get going with reading in the data and using a polynomial model. As we did for coding the k-fold CV algorithm, first code the LOOCV algorithm line by line. Then turn it into a function. Finally, use the function to investigate the LOOCV error for different orders of the polynomial model to determine the order with the best predictive accuracy.
+Use the first section of [02_2_ants_cv_polynomial.R](02_2_ants_cv_polynomial.R) to get going with reading in the data and using a polynomial model.
+
+- [ ] As we did for coding the k-fold CV algorithm, first code the LOOCV algorithm line by line.
+
+- [ ] Then turn it into a function.
+
+- [ ] Finally, use the function to investigate the LOOCV error for different orders of the polynomial model to determine the order with the best predictive accuracy.
+
+
 
 **Push your code to GitHub**
 
