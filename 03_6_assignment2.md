@@ -34,7 +34,7 @@ The data are in the `data` directory:
 library(ggplot2)
 library(dplyr)
 
-# Read in the data()
+# Read in the data
 willowtit <- read.csv("data/wtmatrix.csv") |> 
     mutate(status=ifelse(y.1==1, "present", "absent")) |> 
     select(status, elev)
@@ -42,7 +42,7 @@ head(willowtit)
 
 # Summary
 willowtit |> 
-    group_by(bin=cut(elev, breaks=seq(0, 3000, by=500)), dig.lab=4, status) |> 
+    group_by(bin=cut(elev, breaks=seq(0, 3000, by=500), dig.lab=4), status) |> 
     summarize(p=n()) 
 ```
 
