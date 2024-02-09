@@ -1,7 +1,7 @@
 #' ---
 #' title: "Ant data: decision trees"
 #' author: Brett Melbourne
-#' date: 6 Feb 2024
+#' date: 9 Feb 2024
 #' output:
 #'     github_document
 #' ---
@@ -14,13 +14,27 @@
 library(ggplot2)
 library(dplyr)
 library(tree)
-source("source/tree_helper_functions.R")
+source("source/random_partitions.R") #Function is now in our custom library
+source("source/tree_helper_functions.R") #Other functions for using trees
+
+#' It has become clear that we are repeatedly using our `random_partitions()`
+#' function and haven't needed to change it. So, we could make that the
+#' beginning of a collection of regularly used functions and `source()` it
+#' instead. I added a `source` directory to the project and put the function in
+#' a file there called `random_partitions.R`. We can read the function in using
+#' the `source()` function, which I added at the top of this script. To
+#' illustrate the tree algorithms I've also added some helper functions that do
+#' things like convert data structures and plot trees.
+#' 
 
 #' Forest ant data:
 
 forest_ants <- read.csv("data/ants.csv") |> 
     filter(habitat=="forest") |> 
     select(latitude, richness)
+
+
+#' ## Overview
 
 #' Before we look at the algorithms in detail, we'll start by using the `tree()`
 #' function in the `tree` package. Using this package we'll first train the
@@ -40,13 +54,14 @@ text(tree_trained, pretty=0, digits=2)
 #' 42.575, so we follow the left branch to another decision node. At this node,
 #' we find that 42.4 is greater than 42.18, so we follow the right branch, to a
 #' terminal node, which gives the prediction of 10 species.
-#'
+#' 
+
 #' Plot predictions across a grid of latitude values and compare with the data:
 
-grid_latitude  <- seq(min(forest_ants$latitude), max(forest_ants$latitude), length.out=201)
+grid_latitude  <- seq(min(forest_ants$latitude), max(forest_ants$latitude), 
+                      length.out=201)
 grid_data <- data.frame(latitude=grid_latitude)
-preds <- cbind(grid_data, richness=predict(fit, newdata=grid_data))
-
+preds <- cbind(grid_data, richness=predict(tree_trained, newdata=grid_data))
 forest_ants |> 
     ggplot() +
     geom_point(aes(x=latitude, y=richness)) +
@@ -60,52 +75,61 @@ forest_ants |>
 #' parameters of the tree algorithm.
 #' 
 
-#' Now let's look at the algorithms. We'll look at the **training algorithm**
-#' first. This algorithm is called binary recursive partitioning.
+
+#' ## Close look at algorithms
+
+
+#' ### Training algorithm
+
+#' Now let's look at the algorithms by building them from scratch. We'll look at
+#' the **training algorithm** first. This algorithm is called binary recursive
+#' partitioning.
 #' 
 
-# ```
-# # Binary recursive partitioning
-# define build_tree (y, x) {
-#     if stop = TRUE
-#         calculate prediction (mean of y)
-#     else
-#         partition the data in two along x
-#         left branch:  build_tree( y, x[<x_split] )
-#         right branch: build_tree( y, x[>x_split] )
-# }
-# ```
+#' ```
+#' # Binary recursive partitioning
+#' define build_tree(y,x) {
+#'     if stop = TRUE
+#'         calculate prediction (mean of y)
+#'     else
+#'         find x_split #best x to split the data
+#'         build_tree( (y,x)[x < x_split] ) #L branch
+#'         build_tree( (y,x)[x >= x_split] ) #R branch
+#' }
+#' ```
 
-#' The algorithm is recursive because build_tree is a function and it calls
-#' itself until it finally stops when a stopping rule becomes true. One pass
-#' through this function either establishes a terminal node with a prediction,
-#' or a decision node and two branches. Here is an R implementation that prints
-#' out the tree structure. It has two stopping rules: stop if the number of
-#' points in a partition falls below n_min, or stop if the branching depth d,
-#' exceeds d_max. To split the data, it calls another function (which I have
-#' read in ahead of time using `source()` above) to determine the best split of
-#' the data, using an approach that minimizes the SSQ of the two means. We'll
-#' look at that in a moment.
+#' The algorithm is recursive because `build_tree()` is a function and it calls
+#' itself repeatedly in nested function calls until it finally stops when a
+#' stopping rule becomes true. One pass through this function either establishes
+#' a terminal node with a prediction, or a decision node and two branches.
+#' 
+
+#' Here is an R implementation that prints out the tree structure. It has two
+#' stopping rules: stop if the number of points in a partition falls below
+#' n_min, or stop if the branching depth d, exceeds d_max. To split the data, it
+#' calls another function, `best_split()`, (read in using `source()` above) to
+#' determine the best split of the data (the split that minimizes the SSQ).
+#' We've added some arguments to allow updating the depth and node information.
 
 # Train a decision tree by recursive binary partitioning
-# df:     data frame containing columns y, x
-# n_min:  stopping rule, minimum number of points in a partition
-# d_max:  stopping rule, maximum tree depth
-# d:      current tree depth, initialized to 1
-# node:   current node, initialized to 1
+# df:     data frame containing columns y, x (numeric)
+# n_min:  stopping rule, min number of points in a partition (scalar, integer)
+# d_max:  stopping rule, max tree depth (scalar, integer)
+# d:      current tree depth, initialized to 1 (scalar, integer)
+# node:   current node, initialized to 1 (scalar, integer)
 #
 # output: prints out the tree structure; no return object
-
+#
 build_tree <- function( df, n_min, d_max, d=1, node=1 ) {
 #   if stop = TRUE
-    if ( nrow(df) < n_min | d >= d_max ) {
-        # calculate and print prediction
+    if ( nrow(df) < 2 * n_min | d >= d_max ) {
+    #   calculate and print prediction (and node info)
         y_pred <- mean(df$y)
         print(paste(node, "leaf", round(y_pred, 2), sep="_"))
     } else {
-        #find the best split of the data
+    #   find the best split of the data
         x_split <- best_split(df, n_min)
-        #print decision node information
+    #   print decision node information
         print(paste(node, paste0("<", round(x_split, 2)), sep="_"))
     #   build left branch
         build_tree(df[df$x < x_split,], n_min, d_max, d + 1, 2 * node)
@@ -122,29 +146,48 @@ x <- x + 5
 df <- data.frame(x, y)
 build_tree(df, n_min=5, d_max=3)
 
-#' The printout shows a line for each node, identified by an integer index, and
-#' the decision criteria, or the prediction if the node is a leaf. Thus node 1
-#' says if x < 3.01, take the left branch. The left child branch is
-#' node_left_child = 2 * node_parent, while the right child branch is
-#' node_left_child = 2 * node_parent + 1. So, the left branch is node 2. We see
-#' that this is again a decision node, with its left branch terminating at leaf
-#' node 4 with a prediction of 79.17. There are 3 splits, or decision nodes, and
-#' four leaf nodes, so the training algorithm has partitioned the data into 4
-#' chunks.
+#' The printout shows a line for each node (identified by an integer index) and
+#' either the decision criterion (for a decision node), or the prediction (for a
+#' leaf node). Thus, here node 1 says if x < 3.01, take the left branch. In a
+#' binary tree, there is a scheme for numbering the nodes so we know which node
+#' is connected to which. The node on the left child branch is
+#' 
+#' $$
+#' node_{Lchild} = 2 node_{parent}
+#' $$
+#'
+#' while the node on the right child branch is
+#'
+#' $$
+#' node_{Rchild} = 2 node_{parent} + 1
+#' $$
+#' 
+#' So, the left branch leads to node 2. In the table above, we see that node 2
+#' is again a decision node, with its left branch terminating at leaf node 4
+#' with a prediction of 79.17. There are 3 splits (decision nodes), and four
+#' leaves (terminal nodes), so the training algorithm has partitioned the data
+#' into 4 chunks.
 #' 
 
-#' Adding some book keeping to this algorithm, and another stopping rule that
-#' ensures that we stop if there is no variation in x within a group.
+#' The code we just used shows the general principle. To use the algorithm, we
+#' need to add data structures to collect the data, and another stopping rule
+#' that ensures that we stop if there is no variation in x within a group.
 #' 
 
-
-# Array version of build tree with added check for zero variance
+# Train a decision tree by recursive binary partitioning
+# df:     data frame containing columns y, x (numeric)
+# n_min:  stopping rule, min number of points in a partition (scalar, integer)
+# d_max:  stopping rule, max tree depth (scalar, integer)
+# d:      current tree depth, initialized to 1 (scalar, integer)
+# node:   current node, initialized to 1 (scalar, integer)
+#
+# return: structure of the current and child nodes (data frame)
+#
 build_tree <- function( df, n_min, d_max, d=1, node=1 ) {
-
 #   if stop = TRUE
-    stop1 <- nrow(df) < 2 * n_min
-    stop2 <- d >= d_max
-    stop3 <- var(df$x) == 0 #can't split if no variance
+    stop1 <- nrow(df) < 2 * n_min  #partition size
+    stop2 <- d >= d_max            #max depth
+    stop3 <- var(df$x) == 0        #can't split if no variance
     if ( stop1 | stop2 | stop3 ) {
     #   calculate and record prediction
         y_pred <- mean(df$y)
@@ -163,27 +206,67 @@ build_tree <- function( df, n_min, d_max, d=1, node=1 ) {
     return(result)
 }
 
-#' To use this with the ants data, we'll rename columns as the build_tree
-#' function requires the names "x" and "y".
+#' To use this training algorithm with the ants data, we'll rename columns, as
+#' the `build_tree()` function requires the names "x" and "y". To do that, we'll
+#' make a "wrapper" function. This also names the function with a similar
+#' convention to our previously named function and it's clear that this is a
+#' training algorithm.
+
 train_tree <- function( df, n_min, d_max=5 ) {
     df <- df |> rename(x=latitude, y=richness)
     build_tree( df, n_min, d_max )
 }
 
+#' Now train and plot the tree model on the ants data. Let's try a tree with
+#' stopping rules of minimum partition size of 4 and maximum depth of 3.
+
 tree_trained <- train_tree(forest_ants, n_min=4, d_max=3)
 plot_tree(tree_trained)
 
+#' We see that the training algorithm has partitioned the data into 4 chunks and
+#' the resulting tree is 3 nodes deep.
+#'
 
-#' Code for the **model algorithm** to make predictions. The model consists of
-#' the tree representation, along with this algorithm to read off the decisions.
 
-# Makes predictions for a single x value from a tree that is in row index form
+#' ### Model algorithm
+
+#' The model consists of a representation of the tree structure in a data frame,
+#' along with an algorithm to process the decisions and extract the prediction.
+#' Here is the tree structure:
+
+tree_trained
+
+#' The tree structure is represented by a data frame with a row for each node
+#' and 4 columns: the node identity, the type of node, the split (decision
+#' criterion), and the predicted value of y (richness in the case of the ants
+#' dataset).
+#' 
+
+#' Here is one algorithm for processing the decisions and returning the
+#' prediction. This algorithm navigates the decision tree until it arrives at a
+#' leaf node, which contains the prediction.
+#'
+#' ```
+#' # Predict y from x
+#' start at the root node
+#' while node type is split
+#'     if x < split value at the node
+#'         take left branch to next node
+#'     else
+#'         take right branch to next node
+#' return predicted y at node
+#' ```
+#'
+
+#' Turning this pseudocode into R code:
+
+# Return predicted y for a single x value from a tree
 #
 # t: tree in row index form (data frame)
-# x: value of x to predict for (scalar)
-
+# x: value of x (scalar, numeric)
+#
 predict_tree_x <- function( t, x ) {
-    node <- 1
+    node <- 1 #start at root node
     while ( t$type[node] == "split" ) {
         if ( x < t$split[node] ) {
         #   Take left branch
@@ -196,12 +279,32 @@ predict_tree_x <- function( t, x ) {
     return(t$y_pred[node])
 }
 
-tree_trained_ri <- to_tree_array(tree_trained)
+#' Row index form is the nodes arranged in rows such that node i is located in
+#' row i. This makes the algorithm more efficient because we don't need to
+#' search for the node in the table, we already know which row it is in. There
+#' is a helper function to convert the tree data frame to row index form. Here
+#' is what row index form looks like.
 
+tree_trained_ri <- to_row_index_tree(tree_trained)
+tree_trained_ri
 
-# Now add loop to work with a vector of x values
+#' It's just the 7 nodes in their respective rows. To use the model algorithm to
+#' predict richness at latitude 42.3:
+
+predict_tree_x(tree_trained_ri, 42.3)
+
+#' Now add a repetition structure (here we use a `for` loop) to process a vector
+#' of x values instead of just a single value. This function calls
+#' `predict_tree_x()` for each value of x to extract the predicted y.
+
+# Function to output predicted y values from a tree
+# tree:  tree structure from a call to build_tree (data frame)
+# x_new: x values for which to make a prediction (vector, numeric)
+#
+# return: predicted y values (vector, numeric)
+#
 predict_tree <- function( tree, x_new ) {
-    t <- to_tree_array(tree)
+    t <- to_row_index_tree(tree)
     nx <- length(x_new)
     y_pred <- rep(NA, nx)
     for ( i in 1:nx ) {
@@ -210,52 +313,51 @@ predict_tree <- function( tree, x_new ) {
     return(y_pred)
 }
 
+#' Now we can use this function to plot predictions with the data:
 
-#' Plot predictions with the data.
-
-grid_latitude  <- seq(min(forest_ants$latitude), max(forest_ants$latitude), length.out=201)
-preds <- cbind(grid_data, richness=predict_tree(fit, x_new=grid_latitude))
-
+grid_latitude <- seq(min(forest_ants$latitude), max(forest_ants$latitude), 
+                     length.out=201)
+preds <- data.frame(latitude=grid_latitude, 
+                    richness=predict_tree(tree_trained, x_new=grid_latitude))
 forest_ants |> 
     ggplot() +
     geom_point(aes(x=latitude, y=richness)) +
     geom_line(data=preds, aes(x=latitude, y=richness)) +
     coord_cartesian(ylim=c(0,20))
 
-
-
-
-#' In contrast, the following fit is for a deeper tree. We have modified the
+#' In contrast, the following code trains a deeper tree. We have modified the
 #' stopping rules of the training algorithm to allow splits all the way to
 #' individual data points.
 
 tree_trained <- train_tree(forest_ants, n_min=1, d_max=8)
 plot_tree(tree_trained)
-
-
-
-#' Plot predictions with the data.
-
-#' Plot predictions with the data.
-
-grid_latitude  <- seq(min(forest_ants$latitude), max(forest_ants$latitude), length.out=201)
-preds <- cbind(grid_data, richness=predict_tree(fit, x_new=grid_latitude))
-
+grid_latitude <- seq(min(forest_ants$latitude), max(forest_ants$latitude),
+                     length.out=201)
+preds <- data.frame(latitude=grid_latitude,
+                    richness=predict_tree(tree_trained, x_new=grid_latitude))
 forest_ants |> 
     ggplot() +
     geom_point(aes(x=latitude, y=richness)) +
     geom_line(data=preds, aes(x=latitude, y=richness)) +
     coord_cartesian(ylim=c(0,20))
 
-
 #' For this tree the predictions follow the data except for the one case where
 #' two data points shared the same latitude.
 #' 
 
+
+#' ## Multiple variables, mixed types
+
 #' Now that we've examined the algorithms in some detail, we'll switch back to
-#' using the `tree` package. The algorithms above would need more added to
-#' handle multiple variables, categorical x variables, and the classification
-#' case. There is more data in the ants dataset, including two more predictor
+#' using the `tree` package. The functions above demonstrate the fundamental
+#' algorithms but we'd need to add more code to handle multiple variables,
+#' categorical x variables, and the classification case. The `tree()` function
+#' from the `tree` package handles all of this. In its training algorithm, it
+#' has default stopping rules that include the number of observations in nodes
+#' and the variance within nodes.
+#' 
+
+#' There is more data in the ants dataset, including two more predictor
 #' variables: habitat (bog or forest) and elevation (m).
 
 ants <- read.csv("data/ants.csv") |> 
@@ -263,24 +365,26 @@ ants <- read.csv("data/ants.csv") |>
     mutate_if(is.character, factor)
 head(ants)
 
-#' Fit a tree that includes both latitude and habitat as predictors
+#' Here, we have converted habitat to a factor, which is R's data structure for
+#' a categorical variable and is required for input to the `tree()` function.
+#' Train a tree that includes two of these variables, latitude and habitat, as
+#' predictors:
 
-fit <- tree(richness ~ latitude + habitat, data=ants)
-plot(fit, type="uniform")
-text(fit, pretty=0, digits=2)
+tree_trained <- tree(richness ~ latitude + habitat, data=ants)
+plot(tree_trained, type="uniform")
+text(tree_trained, pretty=0, digits=2)
 
 #' We see the tree has nodes that split at both predictor variables. First it
 #' splits by latitude, then it splits by habitat, then it splits by latitude
 #' again. At the habitat nodes, bog is to the left while forest is to the right.
 #' 
 
-#' Plot the prediction from the fitted model
+#' Plot the prediction from the trained model
 
 grid_data  <- expand.grid(
     latitude=seq(min(ants$latitude), max(ants$latitude), length.out=201),
     habitat=factor(c("forest","bog")))
-preds <- cbind(grid_data, richness=predict(fit, newdata=grid_data))
-
+preds <- cbind(grid_data, richness=predict(tree_trained, newdata=grid_data))
 ants |> 
     ggplot() +
     geom_point(aes(x=latitude, y=richness, col=habitat)) +
@@ -290,32 +394,31 @@ ants |>
 #' Plotting the predicted richness reveals that we have effectively modeled
 #' richness as a nonlinear combination, or "interaction", of habitat and
 #' latitude. The stepwise functions broadly (arguably crudely) capture the
-#' pattern of a different nonlinear relationship between richness and latitude
-#' in each habitat.
+#' pattern of a slightly different nonlinear relationship between richness and
+#' latitude in each habitat.
 #' 
 
-#' Now fit a tree with all three predictor variables
+#' Now train a tree with all three predictor variables:
 
-fit <- tree(richness ~ latitude + habitat + elevation, data=ants)
-plot(fit, type="uniform")
-text(fit, pretty=0, digits=2)
+tree_trained <- tree(richness ~ latitude + habitat + elevation, data=ants)
+plot(tree_trained, type="uniform")
+text(tree_trained, pretty=0, digits=2)
 
 #' This tree has splits for all three predictor variables. First it splits by
 #' latitude, then by habitat, and then it splits again by elevation in forest
-#' habitat only. One interpretation is that elevation is important to predict
-#' richness only in forest.
-#'
+#' habitat only. One interpretation is that elevation helps to predict richness
+#' only in forest.
+#' 
 
-#' It's harder to visualize the prediction from this fit since we have multiple
-#' predictor dimensions. Here is one visualizaton:
-#'
+#' It's harder to visualize the prediction from this trained model since we have
+#' multiple predictor dimensions. Here is one visualizaton:
+#' 
 
 grid_data  <- expand.grid(
     latitude=seq(min(ants$latitude), max(ants$latitude), length.out=201),
     habitat=factor(c("forest","bog")),
     elevation=seq(min(ants$elevation), max(ants$elevation), length.out=51))
-preds <- cbind(grid_data, richness=predict(fit, newdata=grid_data))
-
+preds <- cbind(grid_data, richness=predict(tree_trained, newdata=grid_data))
 ants |> 
     ggplot() +
     geom_line(data=preds, 
@@ -323,8 +426,7 @@ ants |>
               linetype=2) +
     geom_point(aes(x=latitude, y=richness, col=elevation)) +
     facet_wrap(vars(habitat)) +
-    scale_color_viridis_c() +
-    theme_bw()
+    scale_color_viridis_c()
 
 #' The plot shows that elevation doesn't contribute to prediction in the bog
 #' habitat but we're modeling different nonlinearities in the forest habitat for
@@ -337,21 +439,12 @@ ants |>
 #' any number of predictor variables.
 #' 
 
-#' The prediction error (i.e. the out-of-sample error) from a regression tree
-#' can be estimated by k-fold cross validation in the usual way.
 
-# Function to divide a data set into random partitions for cross-validation
-# n:       length of dataset (scalar, integer)
-# k:       number of partitions (scalar, integer)
-# return:  partition labels (vector, integer)
-# 
-random_partitions <- function(n, k) {
-    min_n <- floor(n / k)
-    extras <- n - k * min_n
-    labels <- c(rep(1:k, each=min_n),rep(seq_len(extras)))
-    partitions <- sample(labels, n)
-    return(partitions)
-}
+#' ### Inference algorithm
+
+#' As usual, the prediction error (i.e. the
+#' out-of-sample error) from a regression tree can be estimated by k-fold cross
+#' validation just as we have done for other models.
 
 # Function to perform k-fold CV for the tree model on ants data
 # k:       number of partitions (scalar, integer)

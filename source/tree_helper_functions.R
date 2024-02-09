@@ -25,9 +25,9 @@ best_split <- function(df, n_min) {
     return(x_split_best)
 }
 
-# Convert tree representation to row index form
+# Convert tree structure data frame to row index form
 #
-to_tree_array <- function(tree) {
+to_row_index_tree <- function(tree) {
     #Initialize data frame
     tree_array <- data.frame(matrix(NA, nrow=max(tree$node), ncol=4))
     names(tree_array) <- names(tree)

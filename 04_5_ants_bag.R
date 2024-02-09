@@ -132,13 +132,7 @@ forest_ants %>%
     coord_cartesian(ylim=c(0,20))
 
 #' Now we can check it's predictive accuracy by k-fold CV. We'll use our
-#' functions from previous scripts. But first, a little software engineering. It
-#' has become clear that we are repeatedly using our `random_folds()` function
-#' and haven't needed to change it. So, we could make that the beginning of a
-#' collection of regularly used functions and `source()` it instead. I added a
-#' `source` directory to the project and put the function in a file there called
-#' `random_folds.R`. We can read the function in using the `source()` function,
-#' which I added at the top of this script. We can also make our CV function
+#' functions from previous scripts. But first, a little software engineering. We can also make our CV function
 #' more general by making two changes 1) put `data` as an argument so we have
 #' less code to alter as we change data sets and there are no longer any global
 #' variables, and 2) replace the `dplyr::filter()` function with the base
