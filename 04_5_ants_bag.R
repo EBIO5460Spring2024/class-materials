@@ -1,7 +1,7 @@
 #' ---
 #' title: "Ant data: bagging"
 #' author: Brett Melbourne
-#' date: 2 Feb 2022
+#' date: 13 Feb 2024
 #' output:
 #'     github_document
 #' ---
@@ -15,27 +15,27 @@ library(dplyr)
 library(tree)
 library(doFuture) #For parallel processing
 library(doRNG) #For safe random numbers in parallel processing
-source("source/random_folds.R") #Function is now in our custom library
+source("source/random_partitions.R") #Function is now in our custom library
 registerDoFuture()
 
 #' ### Bagged regression tree algorithm
 
 #' Forest ant data:
 
-forest_ants <- read.csv("data/ants.csv") %>% 
-    filter(habitat=="forest") %>% 
+forest_ants <- read.csv("data/ants.csv") |> 
+    filter(habitat=="forest") |> 
     select(latitude, richness)
 
-#' First fit a standard decision tree model for comparison. We looked at this
+#' First train a standard decision tree model for comparison. We looked at this
 #' previously in `ants_tree.R`. We'll visualize the prediction on a grid that
 #' spans the latitudes.
 
-fit <- tree(richness ~ latitude, data=forest_ants)
+tree_trained <- tree(richness ~ latitude, data=forest_ants)
 grid_data <- data.frame(latitude=seq(min(forest_ants$latitude), 
                                      max(forest_ants$latitude), 
                                      length.out=201))
-preds1tree <- cbind(grid_data, richness=predict(fit, newdata=grid_data))
-forest_ants %>%
+preds1tree <- cbind(grid_data, richness=predict(tree_trained, newdata=grid_data))
+forest_ants |>
     ggplot(aes(x=latitude, y=richness)) +
     geom_point() +
     geom_line(data=preds1tree) +
@@ -69,20 +69,20 @@ for ( i in 1:boot_reps ) {
     boot_indices <- sample(1:n, n, replace=TRUE)
     boot_data <- forest_ants[boot_indices,]
 #   train the base model
-    boot_fit <- tree(richness ~ latitude, data=boot_data)
+    boot_train <- tree(richness ~ latitude, data=boot_data)
 #   record prediction
-    boot_preds[,i] <- predict(boot_fit, newdata=grid_data)
+    boot_preds[,i] <- predict(boot_train, newdata=grid_data)
 }
 bagged_preds <- rowMeans(boot_preds)
 
 #' Plot in comparison to the single tree predictions
 
 preds <- cbind(grid_data, richness=bagged_preds)
-forest_ants %>% 
+forest_ants |> 
     ggplot(aes(x=latitude, y=richness)) +
     geom_point() +
     geom_line(data=preds1tree) +
-    geom_line(data=preds, col="blue", size=1) +
+    geom_line(data=preds, col="blue", linewidth=1) +
     coord_cartesian(ylim=c(0,20)) +
     labs(title="Bagged regression tree (blue) vs single regression tree (black)")
 
@@ -112,9 +112,9 @@ bagrt <- function(formula, data, xnew_data, boot_reps=500) {
         boot_indices <- sample(1:n, n, replace=TRUE)
         boot_data <- data[boot_indices,]
     #   train the base model
-        boot_fit <- tree(formula, data=boot_data)
+        boot_train <- tree(formula, data=boot_data)
     #   record prediction
-        boot_preds[,i] <- predict(boot_fit, newdata=xnew_data)
+        boot_preds[,i] <- predict(boot_train, newdata=xnew_data)
     }
     bagged_preds <- rowMeans(boot_preds)
     return(bagged_preds)
@@ -125,20 +125,22 @@ bagrt <- function(formula, data, xnew_data, boot_reps=500) {
 
 bag_pred <- bagrt(richness ~ latitude, data=forest_ants, xnew_data=grid_data)
 preds <- cbind(grid_data, richness=bag_pred)
-forest_ants %>% 
+forest_ants |> 
     ggplot(aes(x=latitude, y=richness)) +
     geom_point() +
-    geom_line(data=preds, col="blue", size=1) +
+    geom_line(data=preds, col="blue", linewidth=1) +
     coord_cartesian(ylim=c(0,20))
 
 #' Now we can check it's predictive accuracy by k-fold CV. We'll use our
-#' functions from previous scripts. But first, a little software engineering. We can also make our CV function
-#' more general by making two changes 1) put `data` as an argument so we have
-#' less code to alter as we change data sets and there are no longer any global
-#' variables, and 2) replace the `dplyr::filter()` function with the base
-#' function `subset()` to limit dependencies. Eventually we'll work to
-#' generalize this function to accept any model but for now we'll continue
-#' editing it in place.
+#' functions from previous scripts. But first, a little software engineering. We
+#' can make our CV function more general by putting `data` as an argument so we
+#' have less code to alter as we change data sets. This also means there are no
+#' longer any global variables. Eventually we could work to generalize this
+#' function to accept any model but for now we'll continue editing it in place
+#' to reinforce the various pieces. This explicit approach to the cross
+#' validation code is for learning purposes. In production, you will transition
+#' to using tools that make this step even more convenient, such as those in the
+#' tidy models ecosystem (or scikit-learn in Python).
 
 # Function to perform k-fold CV for bagged regression tree model on ants data
 # data:    y and x data (data.frame, mixed)
@@ -147,16 +149,16 @@ forest_ants %>%
 # return:  CV error as MSE (scalar, numeric)
 #
 cv_ants <- function(data, k, monitor=FALSE) {
-    fold <- random_folds(nrow(data), k)
+    partition <- random_partitions(nrow(data), k)
     e <- rep(NA, k)
     for ( i in 1:k ) {
-        test_data <- subset(data, fold == i)
-        train_data <- subset(data, fold != i)
+        test_data <- subset(data, partition == i)
+        train_data <- subset(data, partition != i)
         pred_richness <- bagrt(richness ~ latitude, 
                                data=train_data, 
                                xnew_data=test_data)
         e[i] <- mean((test_data$richness - pred_richness) ^ 2)
-        if (monitor) print(i)
+        if (monitor) print(round(100 * i / k))
     }
     cv_error <- mean(e)
     return(cv_error)
@@ -186,7 +188,7 @@ cv_ants(data=forest_ants, k=nrow(forest_ants), monitor=TRUE) #LOOCV
 #' this code: it will take a long time!
 
 #+ eval=FALSE
-reps <- 500
+reps <- 250
 cv_error <- rep(NA, reps)
 for ( i in 1:reps ) {
     cv_error[i] <- cv_ants(data=forest_ants, k=5)
@@ -200,9 +202,9 @@ ts <- system.time(cv_ants(data=forest_ants, k=5))
 ts
 
 #' So one run of 5-fold CV with `cv_ants` takes about 3-4 seconds on my laptop.
-#' Thus, 500 reps using the `for` loop above would take about half an hour:
+#' Thus, 250 reps using the `for` loop above would take about 15 minutes:
 
-500 * ts[3] / 60 #minutes
+250 * ts[3] / 60 #minutes
 
 #' We can speed this up using parallel computing. To use parallel `for` loops,
 #' we'll use the `doFuture` package, already loaded at the beginning of this
@@ -230,11 +232,11 @@ cv_error <- foreach ( 1:reps ) %dorng% {
 }
 
 #' Use these lines to save or load the results from long jobs:
-# save(cv_error, file="04_4_ants_bag_files/saved/cv_error.Rdata")
-load("04_4_ants_bag_files/saved/cv_error.Rdata")
+# save(cv_error, file="04_5_ants_bag_files/saved/cv_error.Rdata")
+load("04_5_ants_bag_files/saved/cv_error.Rdata")
 
-#' That completed in 8 minutes, about a 3.5X speedup. A rough rule of thumb is
-#' that you can expect a maximum speedup of somewhat less than NX, where N is
+#' That completed in 4 minutes, about a 3.5X speedup. A rough rule of thumb is
+#' that you can expect a maximum speedup of somewhat less than n * X, where n is
 #' the number of hardware cores on your computer. My laptop has 4 hardware cores
 #' with two virtual cores per hardware core to give a total of 8 virtual cores.
 #' To find out how many cores your computer has:
@@ -316,10 +318,10 @@ sd(cv_error) / sqrt(length(cv_error))
 
 #' ### Tuning the boot_reps parameter
 
-#' There is one tuning parameter in the bagging algorithm: boot_reps; the number
-#' of bootstrap replications. In the above, I had already tuned this parameter.
-#' Here, I'll show how this was done. This will also provide some insight into
-#' how and why bagging works.
+#' There is one tuning parameter in the bagging algorithm: `boot_reps`; the
+#' number of bootstrap replications. In the above, I had already tuned this
+#' parameter. Here, I'll show how this was done. This will also provide some
+#' insight into how and why bagging works.
 #'
 #' Increasing boot_reps will decrease the prediction variance and usually the
 #' out-of-sample prediction error; the more bootstrap replications the better.
@@ -349,8 +351,8 @@ preds <- foreach ( b=boot_reps, id=id ) %dorng% {
     cbind(grid_data, richness=bag_pred, boot_reps=b, id=id)
 }
 
-preds %>% 
-    bind_rows() %>%  #collapses the list of data frames to a single data frame
+preds |> 
+    bind_rows() |>  #collapses the list of data frames to a single data frame
     ggplot() +
     geom_point(data=forest_ants, aes(x=latitude, y=richness)) +
     geom_line(aes(x=latitude, y=richness, col=factor(id))) +
@@ -373,11 +375,11 @@ preds %>%
 #+ eval=FALSE
 # Version of cv_ants with a boot_reps argument
 cv_ants_br <- function(data, k, boot_reps) {
-    fold <- random_folds(nrow(data), k)
+    partition <- random_partitions(nrow(data), k)
     e <- rep(NA, k)
     for ( i in 1:k ) {
-        test_data <- subset(data, fold == i)
-        train_data <- subset(data, fold != i)
+        test_data <- subset(data, partition == i)
+        train_data <- subset(data, partition != i)
         pred_richness <- bagrt(richness ~ latitude, 
                                data=train_data, 
                                xnew_data=test_data,
@@ -398,18 +400,18 @@ cv_error_br <- foreach ( b=boot_reps ) %dorng% {
 }
 
 #' Save or load the job
-# save(cv_error_br, boot_reps, file="04_4_ants_bag_files/saved/br_experiment.Rdata")
-load("04_4_ants_bag_files/saved/br_experiment.Rdata")
+# save(cv_error_br, boot_reps, file="04_5_ants_bag_files/saved/br_experiment.Rdata")
+load("04_5_ants_bag_files/saved/br_experiment.Rdata")
 
 #' Calculate and plot the mean CV error (with it's Monte Carlo error) as a
 #' function of boot_reps
  
-data.frame(cv_error=unlist(cv_error_br), boot_reps) %>% 
-    group_by(boot_reps) %>% 
+data.frame(cv_error=unlist(cv_error_br), boot_reps) |> 
+    group_by(boot_reps) |> 
     summarize(mn_cv_error=mean(cv_error), 
               sd_cv_error=sd(cv_error), 
-              n=n()) %>% 
-    mutate(mc_error = sd_cv_error / sqrt(n)) %>% 
+              n=n()) |> 
+    mutate(mc_error = sd_cv_error / sqrt(n)) |> 
     ggplot(aes(x=boot_reps, y=mn_cv_error)) +
     geom_linerange(aes(ymin=mn_cv_error - mc_error, 
                        ymax=mn_cv_error + mc_error)) +
@@ -429,13 +431,14 @@ data.frame(cv_error=unlist(cv_error_br), boot_reps) %>%
 #' increase the number of replicate CV splits to infinity, the Monte Carlo error
 #' approaches zero, so we can always reduce this by increasing the number of CV
 #' splits). From the plot, a setting of 500 bootstrapped trees seems a good
-#' choice for `boot_reps` but if we were especially concerned about computation
-#' time we could probably safely reduce this to 400. Computation time is
-#' linearly related to boot_reps, so reducing from 500 to 400 would only lower
-#' computation time by 20%. We have now finished tuning the `boot_reps`
-#' parameter using the k-fold CV inference algorithm. In "Inference algorithm
-#' (parts 1-2)" above, I used `boot_reps=500`, which was set as the default for
-#' the `bagrt()` function.
+#' choice for `boot_reps` but if we were concerned about computation time
+#' reducing this to 200 wouldn't be too bad since most of the reduction in
+#' prediction error has happened by then. Computation time is linearly related
+#' to `boot_reps`, so reducing from 500 to 200 would lower computation time by
+#' more than half. We have now finished tuning the `boot_reps` parameter using
+#' the k-fold CV inference algorithm. In "Inference algorithm (parts 1-2)"
+#' above, I used `boot_reps=500`, which was set as the default for the `bagrt()`
+#' function.
 #' 
 
 #' ### Extensions
@@ -445,8 +448,8 @@ data.frame(cv_error=unlist(cv_error_br), boot_reps) %>%
 
 # Ant data with multiple predictors
 
-ants <- read.csv("data/ants.csv") %>% 
-    select(-site) %>% 
+ants <- read.csv("data/ants.csv") |> 
+    select(-site) |> 
     mutate_if(is.character, factor)
 
 # Train a bagged tree with latitude (numeric) and habitat (categorical) as predictors
@@ -455,7 +458,7 @@ grid_data  <- expand.grid(
     habitat=factor(c("forest","bog")))
 bag_pred <- bagrt(richness ~ latitude + habitat, data=ants, xnew_data=grid_data)
 preds <- cbind(grid_data, richness=bag_pred)
-ants %>% 
+ants |> 
     ggplot(aes(x=latitude, y=richness, col=habitat)) +
     geom_point() +
     geom_line(data=preds) +
@@ -490,7 +493,7 @@ knn <- function(x, y, x_new, k) {
 # boot_reps:  number of bootstrap replications (scalar, integer)
 # return:     bagged predictions (vector, numeric)
 # 
-bknn <- function(data, xnew_data, k, boot_reps=500) {
+bag_knn <- function(data, xnew_data, k, boot_reps=500) {
     n <- nrow(data)
     nn <- nrow(xnew_data)
     boot_preds <- matrix(rep(NA, nn*boot_reps), nrow=nn, ncol=boot_reps)
@@ -510,20 +513,20 @@ bknn <- function(data, xnew_data, k, boot_reps=500) {
 
 # Train a bagged KNN 7 and form predictions
 grid_latitude_v <- seq(min(forest_ants$latitude), max(forest_ants$latitude), length.out=201)
-grid_data <- data.frame(latitude=grid_latitude_v) #dataframe for bknn, vector for knn
-bknn_pred <- bknn(data=forest_ants, xnew_data=grid_data, k=7)
-preds <- cbind(grid_data, richness=bknn_pred)
+grid_data <- data.frame(latitude=grid_latitude_v) #dataframe for bag_knn, vector for knn
+bag_knn_pred <- bag_knn(data=forest_ants, xnew_data=grid_data, k=7)
+preds <- cbind(grid_data, richness=bag_knn_pred)
 
-# Single KNN 7 fit for comparison
+# Single KNN 7 for comparison
 predsknn <- knn(forest_ants$latitude, forest_ants$richness, x_new=grid_latitude_v, k=7)
 predsknn <- cbind(grid_data, richness=predsknn)
 
 # Plot predictions
-forest_ants %>% 
+forest_ants |> 
     ggplot(aes(x=latitude, y=richness)) +
     geom_point() +
     geom_line(data=predsknn) +
-    geom_line(data=preds, col="blue", size=1) +
+    geom_line(data=preds, col="blue", linewidth=1) +
     coord_cartesian(ylim=c(0,20)) +
     labs(title="Bagged KNN 7 (blue) compared to single KNN 7 (black)")
 
@@ -548,7 +551,7 @@ grid_data  <- expand.grid(
     habitat=factor(c("forest","bog")))
 bag_pred <- predict(bag_train, newdata=grid_data)
 preds <- cbind(grid_data, richness=bag_pred)
-ants %>% 
+ants |> 
     ggplot(aes(x=latitude, y=richness, col=habitat)) +
     geom_point() +
     geom_line(data=preds) +
