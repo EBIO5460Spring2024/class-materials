@@ -8,13 +8,29 @@ cat out.txt #Print the file out.txt to the screen.
 ```
 
 
-## Login and setup
-If you are off campus, VPN first. Login to the server via ssh.
 
-It's also useful to have a GUI app to transfer files back and forth from your laptop to the server. You can then shuttle files back and forth with ease, in near real time, to any directory on the server. This allows you to prototype on your local machine, push the file to Linux on the server, run R, and pull results files back to the local machine for post-processing/graphing.
+## Login and setup
+
+For most servers, including supercomputer resources, you will login to the server via ssh. Do this from a terminal on your desktop or laptop. Mac OS has a built in Terminal application generally found in the Utilities folder in Applications. On Windows you can use the built in Powershell terminal. Linux distributions will have at least one terminal option. You'll need instructions from the server administrator but typically it will be something like
+
+```bash
+ssh jbsmith@login.rc.colorado.edu
+```
+
+For university servers you may need to VPN to the campus network first.
+
+It's also useful to have a GUI app to transfer files back and forth from your laptop to the server. You can then shuttle files back and forth with ease, in near real time, to any directory on the server. This allows you to prototype on your local machine, push the file to Linux on the server, run R, and pull results files back to the local machine for post-processing/graphing. You can also transfer files with command line tools but it is much faster and more convenient to work with a GUI.
+
+* [WinSCP](http://winscp.net) (opensource). Win (recommended).
+* [Cyberduck](https://cyberduck.io/) (opensource). Win, Mac (recommended).
+* [Filezilla](https://filezilla-project.org/) (opensource). Win, Mac, Linux.
+
+In WinSCP and Filezilla the file browser has two window panes, one showing files on the client, the other showing files on the server. You can manually transfer files back and forth or set it to synchronize client and host. Cyberduck presents a browser for the server's file system and you can drag and drop files to/from there, or set it to synchronize a folder.
+
 
 
 ## File management and the R working directory
+
 When you login to the server you will be in your home directory, e.g. `/home/brett`, which is indicated by the `~` symbol. If you transferred files from your Mac or Windows computer this is where they probably are. To list the files in a directory type:
 ```bash
 ls
@@ -45,6 +61,8 @@ man <command>        #help (manual) on linux commands
 man rm               #e.g. help for remove
 ```
 
+
+
 ## Start an interactive R session
 
 This is a command line session only. See later for options for graphics sessions.
@@ -66,7 +84,19 @@ While you can't view graphs from this command line session, you can make graphs 
 This isn't the most efficient way to work but sometimes it is all you have access to when you are working on someone else's computer (e.g. a supercomputing resource).
 
 
+
+## Install R packages
+
+Install packages from within an interactive R session, e.g.
+
+```R
+install.packages("vegan")
+```
+
+
+
 ## Run an R script from the command line
+
 Here, we are running a pre-written script all at once. For a longer job, this is preferred to an interactive session.
 
 ### Variation 1
@@ -82,8 +112,6 @@ nohup R --vanilla < infile.R &
 `nohup` stands for "no hang up" and redirects output to the file `nohup.out` by default.
 
 You can now logout as usual and the process will keep running. If you omit `nohup` the process will quit on logout.
-
-You could possibly try adding `--slave` (might suppress the output) - I have never tried this.
 
 ### Variation 3
 What I use most of the time
@@ -108,7 +136,11 @@ save.image(file="workspace.Rdata")
 ```
 
 
-## Check that R is running
+
+## Checking and managing running jobs
+
+### Check that R is running
+
 Show all the processes running on the server and the resources they are using:
 ```bash
 top #table of processes
@@ -119,10 +151,10 @@ Show just processes from one user and their process IDs:
 ```bash
 ps -u brett
 ```
-Useful for checking ones that are running but not using CPU time. If you have a parallel R job running, there will be one process for the master and one for each of the workers. The first one is the master and it will not be using any significant CPU time so will not show using `top`.
+Useful for checking ones that are running but not using CPU time. If you have a parallel R job running, there will be one process for the controller and one for each of the workers. The first one is the controller and it will not be using any significant CPU time so will not show using `top`.
 
 
-## Stop a computation
+### Stop a computation
 For when you are in an R session in the terminal window.
 
 Sometimes you need to stop a running computation (e.g. it's taking too long, or you got in an infinite loop). While within R, type
@@ -134,20 +166,20 @@ Sometimes this doesn't work and you have to take more drastic action. Hit `Break
 jobs
 ```
 
-## Stop a parallel computation
-If you want to stop a parallel R job that you started from a script, then you need to kill all the processes that were started by it (both master and workers). There are three ways.
+### Stop a parallel computation
+If you want to stop a parallel R job that you started from a script, then you need to kill all the processes that were started by it (both controller and workers). There are three ways.
 
 1) If you are still in the terminal session where you started the job (i.e. you have not logged out and logged back in again), find out the job number and use that to kill the job.
 ```bash
 jobs
 ```
-The job number is the number in the square braces `[]`. This will kill the master and all the workers and is the safest and most convenient way.
+The job number is the number in the square braces `[]`. This will kill the controller and all the workers and is the safest and most convenient way.
 
 2) If you have in the meantime logged out and back in, then you can't get a job number and need to kill the processes. Find the process IDs of your running R jobs using the following command (substitute your user name):
 ```bash
 pgrep -au brett R
 ```
-The master process will generally be the first one (with `--vanilla` in its command call) and the workers are identified by `--slave` in their command calls.
+The controller process will generally be the first one (with `--vanilla` in its command call) and the workers are identified by `--slave` in their command calls.
 
 If you want to kill all of these, then do this
 ```bash
@@ -161,7 +193,7 @@ pgrep -au brett R
 ```
 Then kill them individually (see kill a job or process below).
 
-3) Kill the master process. The worker processes will eventually terminate by themselves but they will continue running at 100% CPU time until they finish their calculation. In testing, I found that they terminate a few seconds after completing their calculation. Identify the master process as in (2). This is also the PID that is printed when you first start the R script, so it is handy to write it down.
+3) Kill the controller process. The worker processes will eventually terminate by themselves but they will continue running at 100% CPU time until they finish their calculation. In testing, I found that they terminate a few seconds after completing their calculation. Identify the controller process as in (2). This is also the PID that is printed when you first start the R script, so it is handy to write it down.
 
 Finally, check that the processes have really gone. The following command will provide a lot of information on all of the processes currently on the server, including other users.
 ```bash
@@ -178,7 +210,7 @@ ps axu | grep R
 If the processes did not go away, kill with `SIGKILL` (see next). 
 
 
-## To kill a job or process
+### Kill a job or process
 ```bash
 kill %<num>
 ```
@@ -200,14 +232,14 @@ kill 4932 4944 4952
 ```
 
 
-## To pause a job or process
+### Pause a job or process
 This can be handy if you need to pause a long job while you do another job. First use the techniques above to find the job or process IDs. The general idea is to use `kill` to send the `SIGSTOP` signal, then you can later resume with `SIGCONT`. e.g.
 ```bash
 kill -SIGSTOP 7975 7984 7993 8002
 kill -SIGCONT 7975 7984 7993 8002
 kill -l #for signal options.
 ```
-Given that the workers will die without a master, pause the workers first. Then pause the master. Reverse the process to restart (start master first).
+Given that the workers will die without a controller, pause the workers first. Then pause the controller. Reverse the process to restart (start controller first).
 
 Here is an example of a complete stop and start process for a 12 core cluster.
 ```bash
@@ -218,49 +250,4 @@ kill -SIGSTOP 7972
 kill -SIGCONT 7972
 kill -SIGCONT 7975 7984 7993 8002 8011 8020 8029 8038 8047 8056 8065 8074
 ```
-I tested this to be sure that no calculations were lost in the pause process.
 
-
-## See how much of a file has been written to:
-```bash
-wc -l <filename>
-```
-(word count, counting number of lines)
-
-## To install R packages
-
-Install packages from within an interactive R session, e.g.
-
-```R
-install.packages("vegan")
-```
-
-
-
-## Transfer files to/from a server
-
-How to transfer files between your laptop/desktop (client) and a server. 
-
-### SSH transfer
-
-The ssh daemon on most linux servers run an SFTP server. This means that file transfers are done over the ssh connection.
-
-Desktop GUI applications for client
-
-A GUI client is much faster and more convenient than the command line.
-
-* [WinSCP](http://winscp.net) (opensource). Win (recommended).
-* [Cyberduck](https://cyberduck.io/) (opensource). Win, Mac (recommended).
-* [Filezilla](https://filezilla-project.org/) (opensource). Win, Mac, Linux.
-
-In WinSCP and Filezilla the file browser has two window panes, one showing files on the client, the other showing files on the server. You can manually transfer files back and forth or set it to synchronize client and host. Cyberduck presents a browser for the server's file system and you can drag and drop files to/from there, or set it to synchronize a folder.
-
-
-### Desktop Linux client
-
-Most desktop linux file browsers have SFTP built in. Precede the location address with `sftp:\\`.
-
-
-### Command line
-
-Command line tools should work in Windows 10+ (use Powershell terminal or Windows Subsystem for Linux), Mac, or Linux clients. I believe SFTP is the most modern protocol, so use the `sftp` tool. The `scp` command can also be used but it apparently uses an older version of SSH, so `sftp` is preferred. The command line is a hassle for routine and frequent file transfers, such as during an analysis session. It can be a good approach for transfers of large files from cloud services such as Amazon Web Services.
