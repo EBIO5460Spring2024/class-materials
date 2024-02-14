@@ -11,4 +11,4 @@ James et al. Chapter 8.1: The basics of decision trees
 
 
 #### 2. Reading for Thursday
-James et al. Chapter 8.2: Bagging, random forests and boosting.
+James et al. Chapter 8.2.1: Bagging
