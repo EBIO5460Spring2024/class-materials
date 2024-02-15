@@ -52,3 +52,28 @@ Below are assignment due dates and a record of the topics we covered each week t
   * error rate
 * Theory: bias-variance tradeoff
 
+
+
+## Week 4
+
+* Model algorithms
+  * Decision tree models
+  * Ensemble algorithms: bagging
+* Training algorithms
+  * Recursive binary partitioning for decision trees
+* Inference algorithms
+  * Tuning decision trees with CV
+
+
+
+## Week 5
+
+* Model algorithms
+  * Ensemble algorithms: bagging, random forests
+* Inference algorithms
+  * Tuning bagging with CV
+  * Tuning random forests with "out of bag" CV
+  * Explainable machine learning: variable importance
+* Parallel processing
+* Using a compute server
+
