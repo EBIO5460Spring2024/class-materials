@@ -529,31 +529,3 @@ forest_ants |>
     geom_line(data=preds, col="blue", linewidth=1) +
     coord_cartesian(ylim=c(0,20)) +
     labs(title="Bagged KNN 7 (blue) compared to single KNN 7 (black)")
-
-#' Finally, bagged decision trees are a special case of the random forest
-#' algorithm where the predictors are not randomly selected. So, in general, we
-#' can use a random forest algorithm to do bagged regression and classification
-#' trees. We will look at random forest next but in the meantime here is a
-#' bagged regression tree for the ants data using the `randomForest` package
-#' that produces similar results to our earlier code (presumably the differences
-#' are due to differences in the base decision tree algorithm). To do bagging,
-#' we set `mtry` equal to the number of predictors. We would want to tune the
-#' `nodesize` parameter, which I have not done here.
-
-#+ message=FALSE, warning=FALSE
-library(randomForest)
-
-# Bagged tree with latitude and habitat as predictors
-bag_train <- randomForest(richness ~ latitude + habitat, 
-                         data=ants, ntree=500, mtry=2, nodesize=10)
-grid_data  <- expand.grid(
-    latitude=seq(min(ants$latitude), max(ants$latitude), length.out=201),
-    habitat=factor(c("forest","bog")))
-bag_pred <- predict(bag_train, newdata=grid_data)
-preds <- cbind(grid_data, richness=bag_pred)
-ants |> 
-    ggplot(aes(x=latitude, y=richness, col=habitat)) +
-    geom_point() +
-    geom_line(data=preds) +
-    coord_cartesian(ylim=c(0,20))
-

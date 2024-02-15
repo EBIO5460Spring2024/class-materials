@@ -260,7 +260,7 @@ ts
 ```
 
     ##    user  system elapsed 
-    ##    4.61    0.10    4.80
+    ##    4.11    0.06    4.18
 
 So one run of 5-fold CV with `cv_ants` takes about 3-4 seconds on my
 laptop. Thus, 250 reps using the `for` loop above would take about 15
@@ -270,8 +270,8 @@ minutes:
 250 * ts[3] / 60 #minutes
 ```
 
-    ## elapsed 
-    ##      20
+    ##  elapsed 
+    ## 17.41667
 
 We can speed this up using parallel computing. To use parallel `for`
 loops, we’ll use the `doFuture` package, already loaded at the beginning
@@ -669,34 +669,3 @@ forest_ants |>
 ```
 
 ![](04_5_ants_bag_files/figure-gfm/unnamed-chunk-26-1.png)<!-- -->
-
-Finally, bagged decision trees are a special case of the random forest
-algorithm where the predictors are not randomly selected. So, in
-general, we can use a random forest algorithm to do bagged regression
-and classification trees. We will look at random forest next but in the
-meantime here is a bagged regression tree for the ants data using the
-`randomForest` package that produces similar results to our earlier code
-(presumably the differences are due to differences in the base decision
-tree algorithm). To do bagging, we set `mtry` equal to the number of
-predictors. We would want to tune the `nodesize` parameter, which I have
-not done here.
-
-``` r
-library(randomForest)
-
-# Bagged tree with latitude and habitat as predictors
-bag_train <- randomForest(richness ~ latitude + habitat, 
-                         data=ants, ntree=500, mtry=2, nodesize=10)
-grid_data  <- expand.grid(
-    latitude=seq(min(ants$latitude), max(ants$latitude), length.out=201),
-    habitat=factor(c("forest","bog")))
-bag_pred <- predict(bag_train, newdata=grid_data)
-preds <- cbind(grid_data, richness=bag_pred)
-ants |> 
-    ggplot(aes(x=latitude, y=richness, col=habitat)) +
-    geom_point() +
-    geom_line(data=preds) +
-    coord_cartesian(ylim=c(0,20))
-```
-
-![](04_5_ants_bag_files/figure-gfm/unnamed-chunk-27-1.png)<!-- -->
