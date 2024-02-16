@@ -199,7 +199,7 @@ rbind(preds_rf, preds_rf_pkg) |>
 plot(rf_pkg_train)
 
 # OOB error for mtry
-xx = tuneRF(x=ants[,-1], y=ants[,1], mtryStart=3, ntreeTry=500)
+tuneRF(x=ants[,-1], y=ants[,1], mtryStart=3, ntreeTry=500)
 
 #' For `tuneRF()` with OOB samples, it is of course stochastic and could vary a
 #' lot from run to run on small datasets like `ants`, just as we've seen such
