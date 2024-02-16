@@ -10,7 +10,7 @@ Below are assignment due dates and a record of the topics we covered each week t
 | --------------------------- | ------ |
 | 1 (LOOCV)                   | 1 Feb  |
 | 2 (classification, KNN)     | 15 Feb |
-| 3 (decision trees, bagging) | 22 Feb |
+| 3 (decision trees, bagging) | 27 Feb |
 | 4 (random forest, boosting) | 7 Mar  |
 | 5 (neural networks)         | 21 Mar |
 | Individual project          | TBA    |
