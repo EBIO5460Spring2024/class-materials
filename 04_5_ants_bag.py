@@ -1,7 +1,9 @@
 import numpy as np
 import pandas as pd
 from sklearn import tree
+from matplotlib.pyplot import show
 from plotnine import *
+
 
 # Start random number generator
 rng = np.random.default_rng()
@@ -17,6 +19,7 @@ forest_ants.head()
 dt = tree.DecisionTreeRegressor(max_depth=2)
 tree_trained = dt.fit(forest_ants[["latitude"]], forest_ants["richness"])
 tree.plot_tree(tree_trained)
+show()
 
 # Grid of latitudes to predict for
 grid_data = pd.DataFrame(np.linspace(np.min(forest_ants["latitude"]),
