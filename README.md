@@ -20,3 +20,9 @@ This repository includes lecture slides (pdf), code, and homework instructions. 
 This is the second semester in a graduate-level "data science for ecology" sequence. Semester 1 is [here](https://github.com/EBIO5460Fall2022/class-materials).
 
 Previous iteration: [Machine Learning for Ecology 2022](https://github.com/EBIO5460Spring2022/class-materials).
+
+**Awesome papers that started as machine learning projects in 2022 class:**
+
+Martin O, Nguyen C, Sarfati R, Chowdhury M, Iuzzolino ML, Nguyen DMT, Layer RM, Peleg O (2024). Embracing firefly flash pattern variability with data-driven species classification. **Scientific Reports** 14: 3432. https://doi.org/10.1038/s41598-024-53671-3.
+
+Ramoneda J, Stallard-Olivera E, Hoffert M, Winfrey CC, Stadler M, Niño-García JP, Fierer N (2023). Building a genome-based understanding of bacterial pH preferences. **Science Advances** 9: eadf8998. https://doi.org/10.1126/sciadv.adf8998.
