@@ -133,7 +133,7 @@ cv_knn_orblu <- function(k_cv, k_knn) {
 #' Use/test the function
 
 cv_knn_orblu(k_cv=10, k_knn=10)
-cv_knn_orblu(k=nrow(orbludat), k_knn=10) #LOOCV
+cv_knn_orblu(k_cv=nrow(orbludat), k_knn=10) #LOOCV
 
 #' Explore a grid of values for k_cv and k_knn
 
