@@ -71,21 +71,21 @@ f_hat <- rep(0, nrow(grid_data))
 r <- y
 
 ssq <- rep(NA, ntrees) #store ssq to visualize descent
-for ( b in 1:ntrees ) {
+for ( m in 1:ntrees ) {
 #   train tree model on r and x
-    data_b <- cbind(r, x)
-    fit_b <- tree(r ~ ., data=data_b, mincut=mincut)
+    data_m <- cbind(r, x)
+    fit_m <- tree(r ~ ., data=data_m, mincut=mincut)
 #   predict residuals from trained tree
-    r_hat_b <- predict(fit_b, newdata=x)
+    r_hat_m <- predict(fit_m, newdata=x)
 #   update residuals (gradient descent)
-    r <- r - lambda * r_hat_b
-    ssq[b] <- sum(r ^ 2)
+    r <- r - lambda * r_hat_m
+    ssq[m] <- sum(r ^ 2)
 #   predict y increment from trained tree
-    f_hat_b <- predict(fit_b, newdata=grid_data)
+    f_hat_m <- predict(fit_m, newdata=grid_data)
 #   update prediction
-    f_hat <- f_hat + lambda * f_hat_b
+    f_hat <- f_hat + lambda * f_hat_m
 #   monitoring
-    print(b)
+    print(m)
 }
 
 # return f_hat
@@ -95,7 +95,7 @@ boost_preds <- f_hat
 #' Plot predictions
 
 preds <- cbind(grid_data, richness=boost_preds)
-ants %>% 
+ants |>
     ggplot() +
     geom_line(data=preds, 
               aes(x=latitude, y=richness, col=elevation, group=factor(elevation)),
@@ -118,7 +118,7 @@ boost_ants1 <- gbm(richness ~ ., data=ants, distribution="gaussian",
 boost_preds <- predict(boost_ants1, newdata=grid_data)
 
 preds <- cbind(grid_data, richness=boost_preds)
-ants %>% 
+ants |>
     ggplot() +
     geom_line(data=preds, 
               aes(x=latitude, y=richness, col=elevation, group=factor(elevation)),
