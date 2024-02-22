@@ -17,8 +17,8 @@ library(gbm)
 
 #' Ant data with 3 predictors of species richness
 
-ants <- read.csv("data/ants.csv") %>% 
-    select(richness, latitude, habitat, elevation) %>% 
+ants <- read.csv("data/ants.csv") |> 
+    select(richness, latitude, habitat, elevation) |> 
     mutate(habitat=factor(habitat))
 
 #' **Boosting** can be viewed as an ensemble prediction method that fits
