@@ -207,9 +207,6 @@ for ( j in 0:iter ) {
 }
 
 
-
-
-
 #' Boosted linear regression algorithm
 #+ cache=TRUE, results=FALSE
 
@@ -266,3 +263,62 @@ g + geom_smooth(method = lm, se = FALSE, col="red", linetype=2)
 #' Here's how the algorithm descended the loss function (MSE)
 
 plot(1:iter, mse, xlab="iteration")
+
+
+
+#' This is an animated version of boosted linear regression to visualize how the
+#' model changes over iterations. Run this code to animate.
+#+ eval=FALSE
+
+# load y, x, xnew
+# x and y are already loaded above
+
+# xnew will be a grid of new predictor values on which to form predictions:
+xnew  <- data.frame(x=seq(-1, 1, 0.1))
+
+# Parameters
+lambda <- 0.01 #Shrinkage/learning rate/descent rate
+iter <- 600
+
+# Set f_hat, r
+f_hat <- rep(0, nrow(xnew))
+r <- y
+
+mse <- rep(NA, iter)         # store MSE to visualize descent
+betas <- matrix(NA, iter, 2) # store model betas to visualize
+for ( m in 1:iter ) {
+#   train model on r and x
+    data_m <- data.frame(r, x)
+    fit_m <- lm(r ~ x, data=data_m)
+    betas[m,] <- coef(fit_m)                      # <- keep betas
+    par(mfrow=c(1,2))                             # |
+    plot(r ~ x, data=data_m, ylim=c(-1.4, 1.4),   # |> animate
+         main=paste("Iteration",m))               # |
+    abline(fit_m)                                 # |
+#   predict residuals from trained model
+    r_hat_m <- predict(fit_m)
+#   update residuals (gradient descent)
+    r <- r - lambda * r_hat_m
+    mse[m] <- sum(r ^ 2) / n
+#   predict y increment from trained model
+    f_hat_m <- predict(fit_m, newdata=xnew)
+    #print(paste("f_hat_m[10]", f_hat_m[10])) #more print
+#   update prediction
+    f_hat <- f_hat + lambda * f_hat_m
+    plot(x, y, ylim=c(-1.4, 1.4),                 # |
+         main=paste("Iteration", m))              # |
+    lines(xnew$x, f_hat)                          # |> animate
+    abline(lm(y~x), col="red")                    # |
+    pause(0.2)                                    # |
+#   monitoring
+    print(m)
+}
+
+#' Visualize how the parameters change over iterations
+#+ eval=FALSE
+
+betas <- data.frame(betas)
+names(betas) <- c("b_0", "b_1")
+plot(1:iter, betas$b_0, xlab="iteration")
+plot(1:iter, betas$b_1, xlab="iteration")
+
