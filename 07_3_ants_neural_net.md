@@ -146,8 +146,7 @@ library(keras)
 
 First we’ll set a random seed for reproducibility. The seed applies to
 R, Python, and Tensorflow. It will take a few moments for Tensorflow to
-get set up and there may be some warnings (CUDA/GPU, seed) but these
-warnings are safe to ignore.
+get set up.
 
 ``` r
 tensorflow::set_random_seed(5574)
@@ -185,9 +184,6 @@ modnn1 <- keras_model_sequential(input_shape = ncol(xtrain)) |>
     layer_dense(units = 1)
 ```
 
-Again, there might be some warnings and messages but they are safe to
-ignore.
-
 We can check the configuration:
 
 ``` r
@@ -223,10 +219,10 @@ compile(modnn1, optimizer="rmsprop", loss="mse")
 ```
 
 The RMSprop algorithm is the default in Keras and works for most models.
-It implements stochastic gradient descent with various performance
-enhancements. By default, the learning rate parameter has a learning
-rate of 0.001 but this can be tuned (see `?optimizer_rmsprop`). Other
-optimizers are available.
+It implements stochastic gradient descent with an adaptive learning rate
+and various performance enhancements. By default, the learning rate
+parameter has a learning rate of 0.001 but this can be tuned (see
+`?optimizer_rmsprop`). Other optimizers are available.
 
 Now train the model, keeping a copy of the training history. Again, we
 are not getting a new R fitted-model object out of this as we would in
@@ -281,7 +277,7 @@ the same model.
 npred <- predict(modnn1, x)
 ```
 
-    ## 641/641 - 1s - 685ms/epoch - 1ms/step
+    ## 641/641 - 1s - 833ms/epoch - 1ms/step
 
 ``` r
 preds <- cbind(grid_data, richness=npred)

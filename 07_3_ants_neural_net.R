@@ -147,8 +147,7 @@ library(keras)
 
 #' First we'll set a random seed for reproducibility. The seed applies to R,
 #' Python, and Tensorflow. It will take a few moments for Tensorflow to get set
-#' up and there may be some warnings (CUDA/GPU, seed) but these warnings are
-#' safe to ignore.
+#' up.
 
 tensorflow::set_random_seed(5574)
 
@@ -179,9 +178,6 @@ modnn1 <- keras_model_sequential(input_shape = ncol(xtrain)) |>
     layer_activation("relu") |> 
     layer_dense(units = 1)
 
-#' Again, there might be some warnings and messages but they are safe to ignore.
-#' 
-
 #' We can check the configuration:
 
 modnn1
@@ -201,7 +197,7 @@ modnn1
 compile(modnn1, optimizer="rmsprop", loss="mse")
 
 #' The RMSprop algorithm is the default in Keras and works for most models. It
-#' implements stochastic gradient descent with various performance enhancements.
+#' implements stochastic gradient descent with an adaptive learning rate and various performance enhancements.
 #' By default, the learning rate parameter has a learning rate of 0.001 but
 #' this can be tuned (see `?optimizer_rmsprop`). Other optimizers are available.
 #' 
