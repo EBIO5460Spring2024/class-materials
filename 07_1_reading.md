@@ -6,9 +6,9 @@ Neural networks
 
 #### 1. Reading for Tuesday
 
-James et al. Chapter 10.1 single layer neural networks
+James et al. Chapter 10.1 Single layer neural networks
 
 
 
 #### 2. Reading for Thursday
-James et al. Chapter 10.2-10.3 multilayer networks and CNNs
+James et al. Chapter 10.2 Multilayer neural networks
