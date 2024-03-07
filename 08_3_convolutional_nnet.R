@@ -6,145 +6,116 @@
 #'     github_document
 #' ---
 
-#' We are using a standard benchmark dataset, CIFAR100 but subsetted to images
-#' in ecological categories. This script has minimal commentary.
+#' To demonstrate a CNN, we are using a standard benchmark dataset, CIFAR100 but
+#' subsetted to images in ecological categories. These are small images, so
+#' training is not too computationally demanding.
 
 #+ results=FALSE, message=FALSE, warning=FALSE
 reticulate::use_condaenv(condaenv = "r-tensorflow")
 library(ggplot2)
 library(dplyr)
 library(keras)
-tensorflow::set_random_seed(2726)
+source("source/prep_cifar56eco.R")
+tensorflow::set_random_seed(2726) #sets for tensorflow, keras, and R
 
-#' Read local copy of the data labels
+#' Load the data (image set with labels). I have written a function to extract
+#' the ecological images from the CIFAR100 benchmark image dataset packaged with
+#' keras. The first time you run this, the data will download to your computer
+#' into a folder in the working directory called `data_large`. The folder will
+#' be created if it doesn't exist. The folder will be added to your `.gitignore`
+#' file so the large file is not uploaded to GitHub. The file is 150MB.
 
-label_names <- read.csv("data/cifar100_fine_label_names.csv")
-
-#' Download the CIFAR100 dataset. Warning: 169 MB. Since it's large, we'll store
-#' it locally in a directory for temporary large datasets and remember to put it
-#' in `.gitignore` so it doesn't get uploaded to GitHub. It will take a minute
-#' or two to download.
-
-if ( !file.exists("data_large/cifar100.RData") ) {
-    if ( !dir.exists("data_large") ) {
-        dir.create("data_large")
-    }
-    cifar100 <- dataset_cifar100()
-    save(cifar100, file="data_large/cifar100.RData")
-} else {
-    load("data_large/cifar100.RData")
+if ( !file.exists("data_large/cifar56eco.RData") ) {
+    prep_cifar56eco()
 }
+load("data_large/cifar56eco.RData")
 
-#' We see it's a list with a `train` and `test` object
-
-str(cifar100)
-
-#' Subset to the ecology images (including human)
-
-ecosubset <- subset(label_names, ecology==TRUE)
-head(ecosubset, 20)
-train_eco <- which(cifar100$train$y %in% ecosubset$label)    
-test_eco <- which(cifar100$test$y %in% ecosubset$label)
-x_train <- cifar100$train$x[train_eco,,,]
-y_train <- cifar100$train$y[train_eco,, drop=FALSE]
-x_test <- cifar100$test$x[test_eco,,,]
-y_test <- cifar100$test$y[test_eco,, drop=FALSE]
-
-#' What do we have?
+#' This has loaded 5 objects: `x_train`, `x_test`, `y_train`, `y_test`,
+#' `eco_labels`. Let's inspect these objects.
 #' 
 
-#' For x we have 30500 images, each 32 x 32 pixels in 3 channels (RGB), arranged
-#' in a 4D array. Pixel values range from 0-255.
+#' For `x_train` we have 28000 images, each 32 x 32 pixels in 3 channels (RGB),
+#' arranged in a 4D array. Pixel values range from 0-255.
 
 dim(x_train)
 class(x_train)
 range(x_train)
 hist(sample(x_train, 5000))
 
-#' For y we have integers coding for 61 categories arranged in a 2D array (1
-#' column matrix).
+#' For `x_test`, we have 5600 images.
+
+dim(x_test)
+
+#' For y we have integers coding for 56 categories arranged in a 2D array (1
+#' column matrix). Integers range from 0 to 55. Indexing starts at zero in
+#' Python and tensorflow.
 
 dim(y_train)
 class(y_train)
 head(y_train)
-sort(unique(y_train)) #61 ecological categories
+sort(unique(y_train)) #56 ecological categories
+
+#' For `eco_labels` we have a dataframe containing the category names associated
+#' with the integer class codes
+
+eco_labels
 
 #' Data preparation 1: convert image data to 0-1 scale.
 
 x_train <- x_train / 255
 x_test <- x_test / 255
 
-#' Data preparation 2: generate new integers for the 61 ecology categories. This
-#' must have integer category labels that range from 0 to m - 1, where m is the
-#' number of categories. This is because tensorflow and python array indices
-#' start at 0 (compared to R, where indices start at 1). 
-
-ecosubset$ecolabel <- 0:60
-
-#' Here are the corresponding original and new labels (`label` vs `ecolabel`).
-
-head(ecosubset, 10)
-
-#' Now make the new integer response using the lookup table in `ecosubset`.
-
-for ( i in 1:nrow(y_train) ) {
-    y_train[i,] <- ecosubset$ecolabel[ecosubset$label==y_train[i,]]
-}
-for ( i in 1:nrow(y_test) ) {
-    y_test[i,] <- ecosubset$ecolabel[ecosubset$label==y_test[i,]]
-}
-
-#' Check the first 10 (e.g. compare with ecosubset above)
-
-data.frame(y_train[1:10,], name=ecosubset$name[y_train[1:10,]+1])
-
-#' Data preparation 3: convert integer response to a dummy variable matrix
+#' Data preparation 2: convert integer response to a dummy variable matrix
 #' suitable for keras/tensorflow. We'll use the `to_categorical()` function from
 #' `keras` to do that.
 
-y_train_int <- y_train #keep a copy of the integer version
-y_train <- to_categorical(y_train, 61)
+y_train_int <- y_train #keep a copy of the integer version for labelling later
+y_train <- to_categorical(y_train, 56)
 
-#' The result is a matrix with 61 columns, 1 column for each category of
+#' The result is a matrix with 56 columns, 1 column for each category of
 #' organism.
 
 class(y_train)
 dim(y_train)
 
-#' Looking at a portion of the matrix (upper left 6x14) we see we have rows of
-#' zeros and ones, with a 1 in the column that represents the category of the
-#' organism in the image.
+#' Looking at some portions of the matrix (upper left 6x14; row 1) we see we
+#' have rows of zeros and ones, with a 1 in the column that represents the
+#' category of the organism in the image.
 
 y_train[1:6,1:14] 
+y_train[1,] 
 
 #' There are 500 images in each category
 
 colSums(y_train)
 
-#' Random selection of images
+#' Here is random selection of images. You can see that the image quality is
+#' poor and it's hard even for a human to identify many of these organisms even
+#' with the label written on the image!
 
 par(mar=c(0,0,0,0), mfrow=c(5,5))
 for (i in sample(1:dim(x_train)[1], 25) ) {
     plot(as.raster(x_train[i,,,]))
-    text(0, 30, labels=ecosubset$name[y_train_int[i,]+1], col="red", pos=4)
-} 
+    text(0, 30, labels=eco_labels$name[y_train_int[i,]+1], col="red", pos=4)
+}
 
-#' Each image has 3 channels: RGB
+#' Each image has 3 channels: RGB. In these plots the level of each channel is
+#' displayed in grayscale (bright indicates a higher level).
 
 par(mar=c(0,0,0,0), mfrow=c(2,2))
-plot(as.raster(x_train[200,,,]))
+plot(as.raster(x_train[175,,,]))
 text(0, 30, "color", col="white", pos=4)
-plot(as.raster(x_train[200,,,1]))
+plot(as.raster(x_train[175,,,1]))
 text(0, 30, "red channel", col="white", pos=4)
-plot(as.raster(x_train[200,,,2]))
+plot(as.raster(x_train[175,,,2]))
 text(0, 30, "green channel", col="white", pos=4)
-plot(as.raster(x_train[200,,,3]))
+plot(as.raster(x_train[175,,,3]))
 text(0, 30, "blue channel", col="white", pos=4)
 
 
-#' Define the CNN architecture (warnings as usual)
-
-tensorflow::set_random_seed(6957)
+#' Now let's set up the model. Define the CNN architecture. The input layer is a
+#' 32 x 32 x 3 array. The output layer is the probability in each of the 56
+#' categories.
 
 modcnn1 <- keras_model_sequential(input_shape=c(32,32,3)) |>
 #   1st convolution-pool layer sequence
@@ -169,8 +140,8 @@ modcnn1 <- keras_model_sequential(input_shape=c(32,32,3)) |>
 #   Standard dense layer
     layer_dense(units=512) |>
     layer_activation_relu() |>
-#   Output layer with softmax (61 categories to predict)    
-    layer_dense(units=61) |> 
+#   Output layer with softmax (56 categories to predict)    
+    layer_dense(units=56) |> 
     layer_activation_softmax()
 
 #' Check the architecture
@@ -184,21 +155,26 @@ modcnn1
 #' second convolutional layer we have 64 x 3 x 3 x 32 + 64 = 18496, and so on.
 #' At the input to the dense feedforward network where the array is flattened we
 #' have 1024 nodes connected to 512 nodes, so 1024 x 512 weights + 512 biases =
-#' 524800 parameters. Nevertheless, we do have a lot of data, about 94 million
-#' pixels (30500 x 32 x 32 x 3).
+#' 524800 parameters. Nevertheless, we do have a lot of data, about 86 million
+#' pixels (28000 x 32 x 32 x 3).
 #' 
 
-#' Compile, and fit with an 80/20 train/validate split
+#' Compile the model, specifying a `categorical_crossentropy` loss function,
+#' which will be used in the gradient descent algorithm. This is a measure of
+#' fit and accuracy on a likelihood scale. `RMSprop` is the default training
+#' algorithm, a variant of stochastic gradient descent. We'll also collect a
+#' second and more direct measure of accuracy.
 #+ eval=FALSE
 
-compile(modcnn1,
-        loss="categorical_crossentropy",
-        optimizer="rmsprop",
+compile(modcnn1, loss="categorical_crossentropy", optimizer="rmsprop",
         metrics="accuracy")
 
-fit(modcnn1, x_train, y_train,
-    epochs=30,
-    batch_size=128,
+#' Train the model using an 80/20 train/validate split to monitor progress. This
+#' will take about 15 minutes on CPU or about 20 seconds on a single NVidia A100
+#' GPU (e.g. on a CU Alpine compute node).
+#+ eval=FALSE
+
+fit(modcnn1, x_train, y_train, epochs=30, batch_size=128, 
     validation_split=0.2) -> history
 
 #' Save the model (or load previously trained model)
@@ -208,24 +184,29 @@ fit(modcnn1, x_train, y_train,
 modcnn1 <- load_model_tf("08_3_convolutional_nnet_files/saved/modcnn1")
 load("08_3_convolutional_nnet_files/saved/modcnn1_history.Rdata")
 
-#' Training history. We see evidence of overfitting after about 20 epochs as the
-#' validation loss begins to climb again.
+#' Plotting the training history, we see evidence of overfitting after only 1 or
+#' two epochs as the validation loss climbs. While the training accuracy
+#' improves, the validation accuracy is stuck at about 40%. This is obviously
+#' not impressive!
 
 plot(history, smooth=FALSE)
 
-#' Plot a random selection of predictions
+#' Plot a random selection of predictions. While the model is incorrect on many
+#' images, it is remarkable that it predicts many correctly (much better than
+#' random guessing) and those that it gets wrong, you can often see how the
+#' image resembles the model's prediction.
 
 selection <- sort(sample(1:dim(x_test)[1], 16))
 par(mar=c(0,0,0,0), mfrow=c(4,4))
 for ( i in selection ) {
     pred <- as.numeric(predict(modcnn1, x_test[i,,,,drop=FALSE]))
     plot(as.raster(x_test[i,,,]))
-    text(0, 30, paste("prediction =", ecosubset$name[which.max(pred)]), col="red", pos=4)
+    text(0, 30, paste("prediction =", eco_labels$name[which.max(pred)]), col="red", pos=4)
     text(0, 28, paste("prob =", round(pred[which.max(pred)],2)), col="red", pos=4)
-    text(0, 26, paste("actual =", ecosubset$name[y_test[i,]+1]), col="red", pos=4)
+    text(0, 26, paste("actual =", eco_labels$name[y_test[i,]+1]), col="red", pos=4)
 } 
 
-#' Predictions and overall accuracy
+#' Predictions and overall accuracy on the hold out test set (about 42%)
 
 pred_prob <- predict(modcnn1, x_test)
 pred_cat <- as.numeric(k_argmax(pred_prob))
