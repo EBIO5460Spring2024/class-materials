@@ -15,175 +15,218 @@ reticulate::use_condaenv(condaenv = "r-tensorflow")
 library(ggplot2)
 library(dplyr)
 library(keras)
-source("source/prep_cifar56eco.R")
-tensorflow::set_random_seed(2726) #sets for tensorflow, keras, and R
+tensorflow::set_random_seed(2914) #sets for tensorflow, keras, and R
 
-#' In the previous script we prepared the CIFAR56eco dataset. Load that back in.
-load("data_large/cifar56eco.RData")
-
-#' Data preparation (as before)
-x_train <- x_train / 255
-x_test <- x_test / 255
-y_train_int <- y_train #keep a copy of the integer version for labelling later
-y_train <- to_categorical(y_train, 56)
-
-#' Resize images for use with vgg16 model (224 x 224 x 3). We'll do this by
-#' padding.
-
-x_train_pad <- keras3::op_image_pad(x_train, top_padding=100, left_padding=100,
-                            target_height=224, target_width=224)
-?image_smart_resize
-
-#' Load vgg16 pretrained model
+#' For transfer learning, we'll use the VGG16 model, which is a convolutional
+#' neural network trained on 1.2 million images from the ImageNet benchmark
+#' image database. Load the VGG16 pretrained model and examine its architecture.
+#' It is similar to the CNN model we fitted from scratch but has two
+#' convolutional layers in a row in each convolution block. The output is a
+#' prediction of 1000 categories.
 
 vgg16 <- application_vgg16(weights="imagenet")
 vgg16
 
-#' Plot a random selection of predictions from the pretrained model.
+#' First, let's try using VGG16 to predict what is in an image from wikipedia
+#' (an elephant). Keras has a few helper functions to prepare the image so that
+#' it's suitable for input to the VGG16 model. It needs to be the correct size
+#' and in an array with the correct dimensions. The format of the ImageNet
+#' dataset has color channels in a different order (BGR instead of RGB) and a
+#' different scaling for the channel levels, which we change using a
+#' `preprocess` helper function.
+#+ cache=TRUE
+
+url <- "https://upload.wikimedia.org/wikipedia/commons/3/37/African_Bush_Elephant.jpg"
+temp_path <- tempfile(fileext=".jpg")
+download.file(url, temp_path, mode="wb")
+img <- image_load(temp_path, target_size=c(224,224))
+img <- image_to_array(img)
+img_inet <- array_reshape(img, c(1, dim(img)))
+img_inet <- imagenet_preprocess_input(img_inet)
+
+#' This is the image
+
+plot(as.raster(img / 255))
+
+#' Now feed the prepared image to the CNN for prediction. First we get a column
+#' matrix of the scores (probabilities) for each of the 1000 categories.
+
+pred <- predict(vgg16, img_inet)
+
+#' Now we can print the top 5 predictions (5 most probable) with a Keras
+#' function that looks up the category names. The prediction is spot on.
+
+imagenet_decode_predictions(pred, top=5)
+
+#' Now let's consider our CIFAR56eco dataset with this VGG16 pretrained model.
+#' In the previous script we prepared the dataset.
+
+load("data_large/cifar56eco.RData")
+
+#' Out of curiosity, let's plot a random selection of predictions using the
+#' pretrained model to see what it would predict out of the box for our
+#' CIFAR56eco images. To feed our 32 x 32 images to VGG16, we need to match the
+#' input image size (VGG16 needs 224 x 224).
+
+#+ cache=TRUE
 
 selection <- sort(sample(1:dim(x_test)[1], 16))
 par(mar=c(0,0,0,0), mfrow=c(4,4))
 for ( i in selection ) {
-    pred <- as.numeric(predict(vgg16, x_test[i,,,,drop=FALSE]))
-    plot(as.raster(x_test[i,,,]))
-    text(0, 30, paste("prediction =", eco_labels$name[which.max(pred)]), col="red", pos=4)
+    img <- image_array_resize( x_test[i,,,,drop=FALSE], 224, 224)
+    img_inet <- imagenet_preprocess_input(img)
+    pred <- predict(vgg16, img_inet)
+    pred_lab <- imagenet_decode_predictions(pred, top=1)[[1]]$class_description
+    plot(as.raster(x_test[i,,,] / 255))
+    text(0, 30, paste("prediction =", pred_lab), col="red", pos=4)
     text(0, 28, paste("prob =", round(pred[which.max(pred)],2)), col="red", pos=4)
     text(0, 26, paste("actual =", eco_labels$name[y_test[i,]+1]), col="red", pos=4)
 } 
 
-#' Train the model for our target application by disconnecting the convolutional
-#' base, which you think of as a feature extraction tool, and training a new
-#' dense layer for our 56 ecological categories.
+#' The 1000 VGG16 categories are quite different to the 56 categories we want to
+#' predict in the CIFAR56eco data so we're not going to expect good predictions
+#' unless there is a large degree of overlap in the categories. Nevertheless, we
+#' see that a few images are correctly classified, some others are close, and we
+#' can understand why some of the other predictions are as they are.
+#' 
 
-vgg16_base <- application_vgg16(weights="imagenet", include_top=FALSE)
+#' ## Transfer learning set up and training
+
+#' Set up a model to predict our 56 ecological categories by disconnecting the
+#' convolutional base from the pretrained VGG16 model. In keras we can do this
+#' by specifying `include_top=FALSE`.
+
+vgg16_base <- application_vgg16(weights="imagenet", include_top=FALSE, 
+                                input_shape=c(224, 224, 3))
+
+#' We can think of this pretrained convolutional base as a skilled feature
+#' extraction tool. It takes a 224 x 224 image and extracts features. The final
+#' output is a 7 x 7 x 512 array, which equals 25088 features.
+
 vgg16_base
 
-freeze_weights(vgg16_base)
+#' We then freeze the weights so that these will not be trained further, and add
+#' a single-layer feedforward network for our 56 ecological categories (the same
+#' architecture we used in our model trained from scratch). Instead of resizing
+#' all the images in our image array, which would use a lot of memory, we have
+#' specified the input image size to be the same as the original images but have
+#' included a resizing layer in the network.
 
-inputs <- layer_input(shape=c(224,224,3))
-outputs <- inputs |>    
+freeze_weights(vgg16_base)
+modtfr1 <- keras_model_sequential(input_shape=c(32, 32, 3)) |>
+    layer_resizing(224, 224) |>
     vgg16_base() |>
 #   Flatten with dropout regularization
     layer_flatten() |>
     layer_dropout(rate=0.5) |>
 #   Standard dense layer
     layer_dense(units=512) |>
-    layer_dropout(rate=0.5) |>
     layer_activation_relu() |>
 #   Output layer with softmax (56 categories to predict)    
     layer_dense(units=56) |> 
     layer_activation_softmax()
 
-modtfr1 <- keras_model(inputs, outputs)
+modtfr1 # Check the architecture
 
-
-#' Our old model for comparison
-
-modcnn1 <- keras_model_sequential(input_shape=c(32,32,3)) |>
-#   1st convolution-pool layer sequence
-    layer_conv_2d(filters=32, kernel_size=c(3,3), padding="same") |>
-    layer_activation_relu() |> 
-    layer_max_pooling_2d(pool_size=c(2,2)) |>
-#   2nd convolution-pool layer sequence    
-    layer_conv_2d(filters=64, kernel_size=c(3,3), padding="same") |> 
-    layer_activation_relu() |> 
-    layer_max_pooling_2d(pool_size=c(2,2)) |>
-#   3rd convolution-pool layer sequence    
-    layer_conv_2d(filters=128, kernel_size=c(3,3), padding="same") |> 
-    layer_activation_relu() |> 
-    layer_max_pooling_2d(pool_size=c(2,2)) |>
-#   4th convolution-pool layer sequence
-    layer_conv_2d(filters=256, kernel_size=c(3,3), padding="same") |> 
-    layer_activation_relu() |> 
-    layer_max_pooling_2d(pool_size=c(2,2)) |>
-#   Flatten with dropout regularization
-    layer_flatten() |>
-    layer_dropout(rate=0.5) |>
-#   Standard dense layer
-    layer_dense(units=512) |>
-    layer_activation_relu() |>
-#   Output layer with softmax (56 categories to predict)    
-    layer_dense(units=56) |> 
-    layer_activation_softmax()
-
-#' Check the architecture
-
-modcnn1
-
-#' We see that the model has almost 1 million parameters! For example, in the
-#' first convolutional layer we have 32 filters, each 3x3, for each of the 3
-#' input channels (RGB), so 32 x 3 x 3 x 3 = 864 weights to which we add 32 bias
-#' parameters (one for each output channel) to give 896 parameters. In the
-#' second convolutional layer we have 64 x 3 x 3 x 32 + 64 = 18496, and so on.
-#' At the input to the dense feedforward network where the array is flattened we
-#' have 1024 nodes connected to 512 nodes, so 1024 x 512 weights + 512 biases =
-#' 524800 parameters. Nevertheless, we do have a lot of data, about 86 million
-#' pixels (28000 x 32 x 32 x 3).
+#' This model has 27.6 million parameters with 12.9 million parameters to be
+#' trained.
 #' 
 
-#' Compile the model, specifying a `categorical_crossentropy` loss function,
-#' which will be used in the gradient descent algorithm. This is a measure of
-#' fit and accuracy on a likelihood scale. `RMSprop` is the default training
-#' algorithm, a variant of stochastic gradient descent. We'll also collect a
-#' second and more direct measure of accuracy.
+#' Prepare the data for training with the VGG16 model
+
+x_train_inet <- imagenet_preprocess_input(x_train)
+x_test_inet <- imagenet_preprocess_input(x_test)
+y_train <- to_categorical(y_train, 56)
+
+#' Compile and train as we previously did with our model trained from scratch. I
+#' trained this on 3 NVIDIA A100 GPUs, which took about 5 mins. Don't try this
+#' on CPU!
 #+ eval=FALSE
 
-compile(modcnn1, loss="categorical_crossentropy", optimizer="rmsprop",
+compile(modtfr1, loss="categorical_crossentropy", optimizer="rmsprop",
         metrics="accuracy")
-
-#' Train the model using an 80/20 train/validate split to monitor progress. This
-#' will take about 15 minutes on CPU or about 20 seconds on a single NVidia A100
-#' GPU (e.g. on a CU Alpine compute node).
-#+ eval=FALSE
-
-fit(modcnn1, x_train, y_train, epochs=30, batch_size=128, 
+fit(modtfr1, x_train_inet, y_train, epochs=30, batch_size=128, 
     validation_split=0.2) -> history
 
-#' Save the model (or load previously trained model)
+#' Save the model (or load previously trained model). This model is too big to
+#' save on GitHub. You can download the trained model from
+#' [here](https://o365coloradoedu-my.sharepoint.com/:f:/g/personal/melbourn_colorado_edu/EnwdWq0nRrpPkAko7Nd5dWABlslJ8tSAaftfmb2EMgwbuw?e=cn3Lgg).
+#' Save the model directory into the location below. The history file is
+#' available from GitHub.
 
-# save_model_tf(modcnn1, "08_3_convolutional_nnet_files/saved/modcnn1")
-# save(history, file="08_3_convolutional_nnet_files/saved/modcnn1_history.Rdata")
-modcnn1 <- load_model_tf("08_3_convolutional_nnet_files/saved/modcnn1")
-load("08_3_convolutional_nnet_files/saved/modcnn1_history.Rdata")
+# save_model_tf(modtfr1, "08_5_transfer_learning_files/saved/modtfr1")
+# save(history, file="08_5_transfer_learning_files/saved/modtfr1_history.Rdata")
+modtfr1 <- load_model_tf("08_5_transfer_learning_files/saved/modtfr1")
+load("08_5_transfer_learning_files/saved/modtfr1_history.Rdata")
 
-#' Plotting the training history, we see evidence of overfitting after only 1 or
-#' two epochs as the validation loss climbs. While the training accuracy
-#' improves, the validation accuracy is stuck at about 40%. This is obviously
-#' not impressive!
+#' Plot the training history. Again, we see evidence of overfitting after a few
+#' epochs as the validation loss climbs. Nevertheless, the training accuracy
+#' continues to improve but is mostly done after about 15 epochs, climbing to
+#' about 60%.
 
 plot(history, smooth=FALSE)
 
-#' Plot a random selection of predictions. While the model is incorrect on many
-#' images, it is remarkable that it predicts many correctly (much better than
-#' random guessing) and those that it gets wrong, you can often see how the
-#' image resembles the model's prediction.
+#' Why do the validation loss and accuracy loss give different signals? The
+#' validation loss is accounting for accuracy in the predicted probability
+#' across all of the categories, whereas the accuracy loss is only assessing the
+#' single predicted category. This pattern suggests we have more parameters in
+#' the model than we need for accurate prediction, so this model is not
+#' efficient.
+#' 
+
+#' For the out-of-sample prediction accuracy we'll check predictions against the
+#' hold-out test set. Prediction is also best done on GPU. This will take about
+#' 15 mins on CPU but seconds on GPU.
+#+ eval=FALSE
+
+pred_prob <- predict(modtfr1, x_test_inet)
+
+#' We'll save this output since it is intensive to compute
+
+# save(pred_prob, file="08_5_transfer_learning_files/saved/modtfr1_pred_prob.Rdata")
+load(file="08_5_transfer_learning_files/saved/modtfr1_pred_prob.Rdata")
+
+#' Accuracy on our hold-out test set is 60%, improving from 42% in our model
+#' trained from scratch. We got a considerable improvement from transfer
+#' learning.
+
+pred_cat <- as.numeric(k_argmax(pred_prob))
+mean(pred_cat == drop(y_test))
+
+#' Plot a random selection of predictions from the test set
+#+ cache=TRUE
 
 selection <- sort(sample(1:dim(x_test)[1], 16))
 par(mar=c(0,0,0,0), mfrow=c(4,4))
 for ( i in selection ) {
-    pred <- as.numeric(predict(modcnn1, x_test[i,,,,drop=FALSE]))
-    plot(as.raster(x_test[i,,,]))
+    pred <- as.numeric(predict(modtfr1, x_test_inet[i,,,,drop=FALSE]))
+    plot(as.raster(x_test[i,,,] / 255))
     text(0, 30, paste("prediction =", eco_labels$name[which.max(pred)]), col="red", pos=4)
     text(0, 28, paste("prob =", round(pred[which.max(pred)],2)), col="red", pos=4)
     text(0, 26, paste("actual =", eco_labels$name[y_test[i,]+1]), col="red", pos=4)
 } 
 
-#' Predictions and overall accuracy on the hold out test set (about 42%)
+#' It's impressive that we can predict the category for many of these low
+#' quality images. There are also some notable misses, such as the elephant
+#' predicted to be "cattle".
+#' 
 
-pred_prob <- predict(modcnn1, x_test)
-pred_cat <- as.numeric(k_argmax(pred_prob))
-mean(pred_cat == drop(y_test))
+#' This model is a first pass. It surely has too many parameters and is not
+#' efficient. Things to try next would be to reduce the size of the hidden layer
+#' in the feedforward network, or eliminate it altogether. It's also not clear
+#' how much of the improved predictive performance is due to transfer learning
+#' versus the different VGG16 architecture. We could also try fitting the VGG16
+#' convolutional layers from scratch but the advantage of transfer learning is
+#' that we don't have to do that. As another thing to try, we could unfreeze
+#' some of the convolution blocks (typically the later ones) and fine tune
+#' those.
+#'
 
-#' Plot probabilities for the same selection of test cases as above
-
-nr <- nrow(pred_prob)
-pred_prob |> 
-    data.frame() |>
-    mutate(case=seq(nr)) |>
-    tidyr::pivot_longer(cols=starts_with("X"), names_to="category", values_to="probability") |> 
-    mutate(category=as.integer(sub("X", "", category)) - 1) |> 
-    filter(case %in% selection) |> 
-    ggplot() +
-    geom_point(aes(x=category, y=probability)) +
-    facet_wrap(vars(case), nrow=4, ncol=4, labeller=label_both)
-
+#' Finally, the training approach here applies generally to more complex
+#' variations of this model (e.g. we could include further regularization
+#' strategies such as data augmentation) but it is not the most efficient way to
+#' train this uncomplicated model. A more efficient approach would break the
+#' training into two phases: 1) use `vgg16_base` to extract and save the
+#' features from the training set, 2) train the feedforward network, where the
+#' inputs are the extracted features. This training approach is very fast in
+#' comparison and is feasible on CPU.
