@@ -7,6 +7,8 @@ Boosted regression tree illustrated with the ants data.
 
 ``` r
 library(ggplot2)
+library(gridExtra) #arranging multiple plots
+library(viridisLite)
 library(dplyr)
 library(tree)
 library(gbm)
@@ -15,8 +17,8 @@ library(gbm)
 Ant data with 3 predictors of species richness
 
 ``` r
-ants <- read.csv("data/ants.csv") %>% 
-    select(richness, latitude, habitat, elevation) %>% 
+ants <- read.csv("data/ants.csv") |> 
+    select(richness, latitude, habitat, elevation) |> 
     mutate(habitat=factor(habitat))
 ```
 
@@ -31,12 +33,12 @@ A boosted regression tree algorithm:
     set parameters: mincut, ntrees, lambda
     set f_hat(xnew) = 0
     set r = y (residuals equal to the data)
-    for b in 1 to ntrees
+    for m in 1 to ntrees
         train tree model on r and x
-        predict residuals, r_hat_b(x), from trained tree  
-        update residuals: r = r - lambda * r_hat_b(x)
-        predict y increment, f_hat_b(xnew), from trained tree
-        update prediction: f_hat(xnew) = f_hat(xnew) + lambda * f_hat_b(xnew)
+        predict residuals, r_hat_m(x), from trained tree  
+        update residuals: r = r - lambda * r_hat_m(x)
+        predict y increment, f_hat_m(xnew), from trained tree
+        update prediction: f_hat(xnew) = f_hat(xnew) + lambda * f_hat_m(xnew)
     return f_hat(xnew)
 
 Code this algorithm in R
@@ -51,7 +53,7 @@ x <- ants[,-1]
 grid_data  <- expand.grid(
     latitude=seq(min(ants$latitude), max(ants$latitude), length.out=201),
     habitat=factor(c("forest","bog")),
-    elevation=seq(min(ants$elevation), max(ants$elevation), length.out=51))
+    elevation=seq(min(ants$elevation), max(ants$elevation), length.out=10))
 # or it could be set to the original x data:
 # grid_data <- ants[,-1]
 
@@ -111,6 +113,105 @@ plot(1:ntrees, ssq, xlab="Iteration (number of trees)")
 
 ![](06_4_ants_boosted_tree_files/figure-gfm/unnamed-chunk-5-1.png)<!-- -->
 
+Here is an animated version to visualize how the model changes over
+iterations. Run this code to animate.
+
+``` r
+# Animated boosted regression tree algorithm
+
+# Pause for the specified number of seconds.
+pause <- function( secs ) {
+    start_time <- proc.time()
+    while ( (proc.time() - start_time)["elapsed"] < secs ) {
+        #Do nothing
+    }
+}
+
+y <- ants$richness
+x <- ants[,-1]
+grid_data  <- expand.grid(
+    latitude=seq(min(ants$latitude), max(ants$latitude), length.out=201),
+    habitat=factor(c("forest","bog")),
+    elevation=seq(min(ants$elevation), max(ants$elevation), length.out=10))
+
+# Parameters
+mincut <- 10 #Minimum size of decision nodes; controls tree complexity
+ntrees <- 600
+lambda <- 0.01 #Shrinkage/learning rate/descent rate
+
+# Set f_hat, r
+f_hat <- rep(0, nrow(grid_data))
+r <- y
+
+ssq <- rep(NA, ntrees) #store ssq to visualize descent
+for ( m in 1:ntrees ) {
+#   train tree model on r and x
+    data_m <- cbind(r, x)
+    fit_m <- tree(r ~ ., data=data_m, mincut=mincut)
+#   predict residuals from trained tree
+    r_hat_m <- predict(fit_m, newdata=x)
+#   update residuals (gradient descent)
+    r <- r - lambda * r_hat_m
+    ssq[m] <- sum(r ^ 2)
+#   predict y increment from trained tree
+    f_hat_m <- predict(fit_m, newdata=grid_data)
+#   update prediction
+    f_hat <- f_hat + lambda * f_hat_m
+    
+#   animate
+    resids <- data.frame(ants, residual=data_m$r)
+    r_hat_grid <- predict(fit_m, newdata=grid_data)
+    preds_r <- data.frame(grid_data, residual=r_hat_grid)
+    preds_d <- cbind(grid_data, richness=f_hat)
+    
+#   animation can't be done with ggplot in real time; use base plotting.
+    par(mfrow = c(2, 2), mar=c(1,0,0,1), oma=c(4,5,4,0))
+    color_ramp <- colorRampPalette(viridis(100))
+    elev_max <- 550
+    #plot residuals
+    for ( h in c("bog","forest") ) {
+        resids_h <- subset(resids, habitat == h)
+        colors <- color_ramp(10)[ceiling(10 * resids_h$elevation/elev_max)]
+        plot(residual ~ latitude, col=colors, data=resids_h,
+             ylim=c(-5, 20), pch=19, axes=FALSE)
+        axis(1, labels=FALSE)
+        if ( h == "bog" ) axis(2) else axis(2, labels=FALSE)
+        box()
+        mtext(h, line=1.5)
+        if ( h == "bog" ) mtext("residuals", side=2, line=3)
+        
+      # Add a line for each elevation
+      for (elev in unique(preds_r$elevation)) {
+        preds_r_h <- subset(preds_r, elevation == elev & habitat == h)
+        colors <- color_ramp(10)[ceiling(10 * preds_r_h$elevation/elev_max)]
+        lines(residual ~ latitude, col=colors, data=preds_r_h, lty=2)
+      }
+    }
+    #plot data
+    for ( h in c("bog","forest") ) {
+        ants_h <- subset(ants, habitat == h)
+        colors <- color_ramp(10)[ceiling(10 * ants_h$elevation/elev_max)]
+        plot(richness ~ latitude, col=colors, data=ants_h,
+             ylim=c(0, 18), pch=19, axes=FALSE)
+        axis(1)
+        if ( h == "bog" ) axis(2) else axis(2, labels=FALSE)
+        box()
+        mtext("latitude", side=1, line=3)
+        if ( h == "bog" ) mtext("richness", side=2, line=3)
+        
+        # Add a line for each elevation
+        for (elev in unique(preds_d$elevation)) {
+            preds_d_h <- subset(preds_d, elevation == elev & habitat == h)
+            colors <- color_ramp(10)[ceiling(10 * preds_d_h$elevation/elev_max)]
+            lines(richness ~ latitude, col=colors, data=preds_d_h, lty=2)
+        }
+    }
+    mtext(paste("Iteration", m, "/", ntrees), outer=TRUE, line=2)
+    pause(0.2)
+}
+boost_preds <- f_hat
+```
+
 Boosted regression trees are implemented in the gbm package
 
 ``` r
@@ -135,4 +236,4 @@ ants |>
     theme_bw()
 ```
 
-![](06_4_ants_boosted_tree_files/figure-gfm/unnamed-chunk-6-1.png)<!-- -->
+![](06_4_ants_boosted_tree_files/figure-gfm/unnamed-chunk-7-1.png)<!-- -->
