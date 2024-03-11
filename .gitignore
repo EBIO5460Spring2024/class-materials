@@ -5,6 +5,8 @@
 
 *.Rproj
 *.Rdata
+data_large/
+08_5_transfer_learning_files/saved/modtfr1/
 
 #########################################################
 # These were added by R studio to ignore key R and
@@ -71,5 +73,3 @@ Icon
 .Trash-*
 ## .nfs files are created when an open file is removed but is still being accessed
 .nfs*
-
-
