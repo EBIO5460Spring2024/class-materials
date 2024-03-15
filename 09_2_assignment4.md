@@ -99,7 +99,7 @@ mean(nz05_pred == nz05pa$occ) #accuracy
 mean(nz05_pred != nz05pa$occ) #error = 1 - accuracy
 ```
 
-**Q1\.** Train and tune a gradient boosting model to find the best predictive performance across the three boosting parameters ( `eta`, `max_depth`, `subsample`, `colsample_bytree`, `nrounds`). 
+**Q1\.** Train and tune a gradient boosting model to find the best predictive performance across the five boosting parameters ( `eta`, `max_depth`, `subsample`, `colsample_bytree`, `nrounds`). 
 
 Suggestions:
 
