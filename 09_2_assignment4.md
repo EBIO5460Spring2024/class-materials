@@ -99,6 +99,43 @@ mean(nz05_pred == nz05pa$occ) #accuracy
 mean(nz05_pred != nz05pa$occ) #error = 1 - accuracy
 ```
 
+Example prediction for a grid of the predictor variables across NZ. The grid was prepared from the raster (geotiff) files associated with the paper, downloaded from https://osf.io/kwc4v/files/.
+
+```R
+# Read in the grid of predictor variables
+NZ_grid <- read.csv("data/NZ_predictors.csv")
+head(NZ_grid)
+
+# Prepare data for xgboost
+NZ_grid_xgb <- xgb.DMatrix(data=as.matrix(select(NZ_grid, !c(x,y))))
+colnames(NZ_grid_xgb)
+
+#Predict
+nz05_grid_prob <- predict(nz05_train, newdata=NZ_grid_xgb)
+nz05_grid_present <- 1 * (nz05_grid_prob > 0.5)
+
+# Map probability prediction
+NZ_grid |>
+    bind_cols(prob=nz05_grid_prob) |>
+    ggplot() +
+    geom_tile(aes(x=x, y=y, fill=prob)) +
+    scale_fill_viridis_c() +
+    coord_equal() +
+    theme_void() +
+    labs(fill = "Probability")
+    
+# Map presence prediction
+NZ_grid |>
+    bind_cols(present=nz05_grid_present) |>
+    ggplot() +
+    geom_tile(aes(x=x, y=y, fill=factor(present))) +
+    coord_equal() +
+    theme_void() +
+    labs(fill = "Present")
+```
+
+
+
 **Q1\.** Train and tune a gradient boosting model to find the best predictive performance across the five boosting parameters ( `eta`, `max_depth`, `subsample`, `colsample_bytree`, `nrounds`). 
 
 Suggestions:
@@ -111,10 +148,7 @@ Suggestions:
 
 **Q2\.** Like other tree ensemble methods we have looked at, `xgboost` can provide information about the relative importance of the different predictor variables. Research how to do this and make a plot that displays this information.
 
-**Q3\.** Plot the prediction both as a presence map and a map of probabilities. You can download a complete set of predictors as raster files for New Zealand from here:
-
-* https://osf.io/kwc4v/files/
-* navigate to data/Environment > click on NZ > download as zip
+**Q3\.** Plot the prediction both as a presence map and a map of probabilities.
 
 
 
