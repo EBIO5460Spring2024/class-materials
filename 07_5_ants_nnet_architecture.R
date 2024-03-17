@@ -14,7 +14,7 @@
 #' and of course tuning and k-fold cross validation, the latter of which would
 #' add so much computation that it's not worth it. This code is to illustrate
 #' the effect of different architectures and for comparison to the previous
-#' machine learning approaches we have used with this dataset.
+#' machine learning approaches we have used with this small dataset.
 
 #+ results=FALSE, message=FALSE, warning=FALSE
 reticulate::use_condaenv(condaenv = "r-tensorflow")
@@ -25,30 +25,39 @@ library(keras)
 #' Ant data with 3 predictors of species richness
 
 ants <- read.csv("data/ants.csv") |> 
-    select(richness, latitude, habitat, elevation) |> 
-    mutate(habitat=factor(habitat))
+    select(richness, latitude, habitat, elevation)
+head(ants)
+
+#' Scaling parameters
+
+lat_mn <- mean(ants$latitude)
+lat_sd <- sd(ants$latitude)
+ele_mn <- mean(ants$elevation)
+ele_sd <- sd(ants$elevation)
 
 #' Prepare the data and a set of new x to predict
  
-xtrain <- ants[,-1] |> 
-    mutate(across(where(is.numeric), scale)) |> 
-    mutate(bog=ifelse(habitat=="bog", 1, 0)) |>
-    mutate(forest=ifelse(habitat=="forest", 1, 0)) |> 
-    select(latitude, bog, forest, elevation) |> #drop original categorical var
+xtrain <- ants |> 
+    mutate(latitude = (latitude - lat_mn) / lat_sd,
+           elevation = (elevation - ele_mn) / ele_sd,
+           bog = ifelse(habitat == "bog", 1, 0),
+           forest = ifelse(habitat == "forest", 1, 0)) |>    
+    select(latitude, bog, forest, elevation) |>     #drop richness & habitat
     as.matrix()
 
-ytrain <- ants[,1]
+ytrain <- ants[,"richness"]
 
 grid_data  <- expand.grid(
     latitude=seq(min(ants$latitude), max(ants$latitude), length.out=201),
-    habitat=factor(c("forest","bog")),
+    habitat=c("forest","bog"),
     elevation=seq(min(ants$elevation), max(ants$elevation), length.out=51))
 
-x <- grid_data |> 
-    mutate(across(where(is.numeric), scale)) |> 
-    mutate(bog=ifelse(habitat=="bog", 1, 0)) |>
-    mutate(forest=ifelse(habitat=="forest", 1, 0)) |> 
-    select(latitude, bog, forest, elevation) |> #drop original categorical var
+x <- grid_data |>
+    mutate(latitude = (latitude - lat_mn) / lat_sd,
+           elevation = (elevation - ele_mn) / ele_sd,
+           bog = ifelse(habitat == "bog", 1, 0),
+           forest = ifelse(habitat == "forest", 1, 0)) |>    
+    select(latitude, bog, forest, elevation) |>     #drop richness & habitat
     as.matrix()
 
 
@@ -137,7 +146,9 @@ ants |>
     scale_color_viridis_c() +
     theme_bw()
 
-#' The deep model has more complexity to its fit, for example more folds and
-#' bends in the surface, for the same number of parameters and epochs. You
-#' can also see that this model is probably nonsense overall.
+#' The deep model is very "expressive". It has more complexity to its fit, for
+#' example more folds and bends in the surface, for the same number of
+#' parameters and epochs. You can also see that this model is probably nonsense
+#' overall given the many contortions it is undergoing to fit the data. It is
+#' likely very overfit and unlikely to generalize well.
 #' 

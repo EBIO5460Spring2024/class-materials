@@ -12,7 +12,7 @@ regularization and of course tuning and k-fold cross validation, the
 latter of which would add so much computation that it’s not worth it.
 This code is to illustrate the effect of different architectures and for
 comparison to the previous machine learning approaches we have used with
-this dataset.
+this small dataset.
 
 ``` r
 reticulate::use_condaenv(condaenv = "r-tensorflow")
@@ -25,32 +25,51 @@ Ant data with 3 predictors of species richness
 
 ``` r
 ants <- read.csv("data/ants.csv") |> 
-    select(richness, latitude, habitat, elevation) |> 
-    mutate(habitat=factor(habitat))
+    select(richness, latitude, habitat, elevation)
+head(ants)
+```
+
+    ##   richness latitude habitat elevation
+    ## 1        6    41.97  forest       389
+    ## 2       16    42.00  forest         8
+    ## 3       18    42.03  forest       152
+    ## 4       17    42.05  forest         1
+    ## 5        9    42.05  forest       210
+    ## 6       15    42.17  forest        78
+
+Scaling parameters
+
+``` r
+lat_mn <- mean(ants$latitude)
+lat_sd <- sd(ants$latitude)
+ele_mn <- mean(ants$elevation)
+ele_sd <- sd(ants$elevation)
 ```
 
 Prepare the data and a set of new x to predict
 
 ``` r
-xtrain <- ants[,-1] |> 
-    mutate(across(where(is.numeric), scale)) |> 
-    mutate(bog=ifelse(habitat=="bog", 1, 0)) |>
-    mutate(forest=ifelse(habitat=="forest", 1, 0)) |> 
-    select(latitude, bog, forest, elevation) |> #drop original categorical var
+xtrain <- ants |> 
+    mutate(latitude = (latitude - lat_mn) / lat_sd,
+           elevation = (elevation - ele_mn) / ele_sd,
+           bog = ifelse(habitat == "bog", 1, 0),
+           forest = ifelse(habitat == "forest", 1, 0)) |>    
+    select(latitude, bog, forest, elevation) |>     #drop richness & habitat
     as.matrix()
 
-ytrain <- ants[,1]
+ytrain <- ants[,"richness"]
 
 grid_data  <- expand.grid(
     latitude=seq(min(ants$latitude), max(ants$latitude), length.out=201),
-    habitat=factor(c("forest","bog")),
+    habitat=c("forest","bog"),
     elevation=seq(min(ants$elevation), max(ants$elevation), length.out=51))
 
-x <- grid_data |> 
-    mutate(across(where(is.numeric), scale)) |> 
-    mutate(bog=ifelse(habitat=="bog", 1, 0)) |>
-    mutate(forest=ifelse(habitat=="forest", 1, 0)) |> 
-    select(latitude, bog, forest, elevation) |> #drop original categorical var
+x <- grid_data |>
+    mutate(latitude = (latitude - lat_mn) / lat_sd,
+           elevation = (elevation - ele_mn) / ele_sd,
+           bog = ifelse(habitat == "bog", 1, 0),
+           forest = ifelse(habitat == "forest", 1, 0)) |>    
+    select(latitude, bog, forest, elevation) |>     #drop richness & habitat
     as.matrix()
 ```
 
@@ -94,13 +113,13 @@ load("07_5_ants_nnet_architecture_files/saved/modnn2_history.Rdata")
 plot(history, smooth=FALSE, theme_bw=TRUE)
 ```
 
-![](07_5_ants_nnet_architecture_files/figure-gfm/unnamed-chunk-7-1.png)<!-- -->
+![](07_5_ants_nnet_architecture_files/figure-gfm/unnamed-chunk-8-1.png)<!-- -->
 
 ``` r
 npred <- predict(modnn2, x)
 ```
 
-    ## 641/641 - 1s - 968ms/epoch - 2ms/step
+    ## 641/641 - 1s - 617ms/epoch - 963us/step
 
 ``` r
 preds <- cbind(grid_data, richness=npred)
@@ -115,7 +134,7 @@ ants |>
     theme_bw()
 ```
 
-![](07_5_ants_nnet_architecture_files/figure-gfm/unnamed-chunk-8-1.png)<!-- -->
+![](07_5_ants_nnet_architecture_files/figure-gfm/unnamed-chunk-9-1.png)<!-- -->
 
 For this wide model, we get quite a flexible fit with a good deal of
 nonlinearity and some complexity to the surface (e.g. the fold evident
@@ -177,13 +196,13 @@ load("07_5_ants_nnet_architecture_files/saved/modnn3_history.Rdata")
 plot(history, smooth=FALSE, theme_bw=TRUE)
 ```
 
-![](07_5_ants_nnet_architecture_files/figure-gfm/unnamed-chunk-12-1.png)<!-- -->
+![](07_5_ants_nnet_architecture_files/figure-gfm/unnamed-chunk-13-1.png)<!-- -->
 
 ``` r
 npred <- predict(modnn3, x)
 ```
 
-    ## 641/641 - 1s - 772ms/epoch - 1ms/step
+    ## 641/641 - 1s - 631ms/epoch - 985us/step
 
 ``` r
 preds <- cbind(grid_data, richness=npred)
@@ -198,8 +217,10 @@ ants |>
     theme_bw()
 ```
 
-![](07_5_ants_nnet_architecture_files/figure-gfm/unnamed-chunk-13-1.png)<!-- -->
+![](07_5_ants_nnet_architecture_files/figure-gfm/unnamed-chunk-14-1.png)<!-- -->
 
-The deep model has more complexity to its fit, for example more folds
-and bends in the surface, for the same number of parameters and epochs.
-You can also see that this model is probably nonsense overall.
+The deep model is very “expressive”. It has more complexity to its fit,
+for example more folds and bends in the surface, for the same number of
+parameters and epochs. You can also see that this model is probably
+nonsense overall given the many contortions it is undergoing to fit the
+data. It is likely very overfit and unlikely to generalize well.
