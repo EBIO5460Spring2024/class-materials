@@ -7,6 +7,7 @@
 *.Rdata
 data_large/
 08_5_transfer_learning_files/saved/modtfr1/
+source/__pycache__/
 
 #########################################################
 # These were added by R studio to ignore key R and
