@@ -1,3 +1,6 @@
+from itertools import product
+import pandas as pd
+
 # Create a data frame with a grid of all combinations of the variables specified
 # in grid_dict.
 #     https://pandas.pydata.org/pandas-docs/version/0.17.1/
