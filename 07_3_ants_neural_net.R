@@ -18,8 +18,20 @@ library(dplyr)
 #' Ant data with 3 predictors of species richness
 
 ants <- read.csv("data/ants.csv") |> 
-    select(richness, latitude, habitat, elevation) |> 
-    mutate(habitat=factor(habitat))
+    select(richness, latitude, habitat, elevation)
+head(ants)
+
+#' For neural networks it is customary to scale numeric predictors to zero mean,
+#' unit variance, as the training algorithms perform better. To make predictions
+#' with new data, we need to use the scaling parameters from the data used to
+#' train the model. Here, we calculate the scaling parameters (mean and standard
+#' deviation) to use later.
+
+lat_mn <- mean(ants$latitude)
+lat_sd <- sd(ants$latitude)
+ele_mn <- mean(ants$elevation)
+ele_sd <- sd(ants$elevation)
+
 
 #' ### Hand-coded feedforward network
 
@@ -57,15 +69,16 @@ g_relu <- function(z) {
 # load x (could be a grid of new predictor values or the original data)
 grid_data  <- expand.grid(
     latitude=seq(min(ants$latitude), max(ants$latitude), length.out=201),
-    habitat=factor(c("forest","bog")),
+    habitat=c("forest","bog"),
     elevation=seq(min(ants$elevation), max(ants$elevation), length.out=51))
 
 # data preparation: scale, dummy encoding, convert to matrix
-x <- grid_data |> 
-    mutate(across(where(is.numeric), scale)) |> 
-    mutate(bog=ifelse(habitat=="bog", 1, 0)) |>
-    mutate(forest=ifelse(habitat=="forest", 1, 0)) |> 
-    select(latitude, bog, forest, elevation) |> #drop original categorical var
+x <- grid_data |>
+    mutate(latitude = (latitude - lat_mn) / lat_sd,
+           elevation = (elevation - ele_mn) / ele_sd,
+           bog = ifelse(habitat == "bog", 1, 0),
+           forest = ifelse(habitat == "forest", 1, 0)) |>    
+    select(latitude, bog, forest, elevation) |>     #drop richness & habitat
     as.matrix()
 
 # dimensions of x
@@ -103,7 +116,7 @@ for ( k in 1:K ) {
     A[,k] <- g_relu(z)
 }
 
-# output layer 2, linear model
+# output, layer 2, linear model
 f_x <- A %*% w2  + b2
 
 # return f(x); a redundant copy but mirrors our previous examples
@@ -133,10 +146,11 @@ ants |>
 #' You'll need to install Python and Tensorflow to use the `keras` package. The
 #' `keras` package is an R interface to the Python Keras library, which in turn
 #' is an interface to the Python Tensorflow library, which in turn is an
-#' interface to Tensorflow (mostly C++)! See Homework 6 for installation
+#' interface to Tensorflow (mostly C++)! See Assignment 4 for installation
 #' directions. The Python Keras library is widely used and the R functions and
 #' workflow closely mirror the Python functions and workflow, so what we'll
-#' learn in Keras for R largely applies to Keras for Python as well.
+#' learn in Keras for R largely applies to Keras for Python as well. See also
+#' the Python version of this script.
 #' 
 
 #+ warning=FALSE
@@ -151,16 +165,18 @@ library(keras)
 
 tensorflow::set_random_seed(5574)
 
-#' Next, prepare the data (exactly as we did for the hand-coded version):
+#' Next, prepare the data (the predictors are prepared exactly as we did for the
+#' hand-coded version above):
  
-xtrain <- ants[,-1] |> 
-    mutate(across(where(is.numeric), scale)) |> 
-    mutate(bog=ifelse(habitat=="bog", 1, 0)) |>
-    mutate(forest=ifelse(habitat=="forest", 1, 0)) |> 
-    select(latitude, bog, forest, elevation) |> #drop original categorical var
+xtrain <- ants |> 
+    mutate(latitude = (latitude - lat_mn) / lat_sd,
+           elevation = (elevation - ele_mn) / ele_sd,
+           bog = ifelse(habitat == "bog", 1, 0),
+           forest = ifelse(habitat == "forest", 1, 0)) |>    
+    select(latitude, bog, forest, elevation) |>     #drop richness & habitat
     as.matrix()
 
-ytrain <- ants[,1]
+ytrain <- ants[,"richness"]
 
 #' Next, specify the model. The basic syntax builds the model layer by layer,
 #' using the pipe operator to express the flow of information from the output of
@@ -197,32 +213,35 @@ modnn1
 compile(modnn1, optimizer="rmsprop", loss="mse")
 
 #' The RMSprop algorithm is the default in Keras and works for most models. It
-#' implements stochastic gradient descent with an adaptive learning rate and various performance enhancements.
-#' By default, the learning rate parameter has a learning rate of 0.001 but
-#' this can be tuned (see `?optimizer_rmsprop`). Other optimizers are available.
-#' 
+#' implements stochastic gradient descent with an adaptive learning rate and
+#' various performance enhancements. By default, the initial learning rate is
+#' 0.001 (see `?optimizer_rmsprop`) but this can be tuned. Other optimizers are
+#' available.
+#'
 
 #' Now train the model, keeping a copy of the training history. Again, we are
-#' not getting a new R fitted-model object out of this as we would in say a call
-#' to `fit()` with an `lm` object but instead we are directing Keras in Python
-#' to train the model. The history object is a by-product of training, so I put
-#' it on the right-hand side of the expression to be clear that this is a
-#' by-product and not a traditional R fitted-model object. In one epoch, the
-#' training data are sampled in batches (one SGD step is taken for each batch)
-#' until all of the data have been sampled, so the number of epochs is the
-#' number of complete iterations through the training data. I chose 300 epochs
-#' because the fit improves only slowly beyond that. Here I used a batch size of
-#' 4, which means 10% of the data are used on each subsample to calculate the
-#' stochastic gradient descent step. Training will take a minute or so and a
-#' plot will chart its progress.
+#' not getting a new R fitted-model object out of this as we would in, say, a
+#' call to `fit()` with an `lm` object but instead we are directing Keras in
+#' Python to train the model (all the important output remains in Python data
+#' structures). The history object is a by-product of training, so I put it on
+#' the right-hand side of the expression to be clear that this is a by-product
+#' and not a traditional R fitted-model object (where you would usually expect
+#' to find the trained parameter values). In one epoch, the training data are
+#' sampled in batches (one SGD step is taken for each batch) until all of the
+#' data have been sampled, so the number of epochs is the number of complete
+#' iterations through the training data. I chose 300 epochs because the fit
+#' improves only slowly beyond that. Here I used a batch size of 4, which means
+#' 10% of the data are used on each subsample to calculate the stochastic
+#' gradient descent step. Training will take a minute or so and a plot will
+#' chart its progress.
 
 #+ eval=FALSE
 
 fit(modnn1, xtrain, ytrain, epochs = 300, batch_size=4) -> history
 
-#' As it takes time to train these models, it's worth saving the model and
-#' history so they they can be reloaded later. We can also load this saved model
-#' in Python or share with colleagues.
+#' As it takes time to train these models, it's worth saving the model
+#' (Tensorflow format) and history (R format) so they they can be reloaded
+#' later. We can also load this saved model in Python or share with colleagues.
 
 # save_model_tf(modnn1, "07_3_ants_neural_net_files/saved/modnn1")
 # save(history, file="07_3_ants_neural_net_files/saved/modnn1_history.Rdata")
@@ -241,15 +260,17 @@ plot(history, smooth=FALSE, theme_bw=TRUE)
 #' 
 
 #' Make predictions for our grid of new predictor variables (`x`; we made this
-#' earlier) and plot the fitted model with the data. This plot is exactly the
-#' same as the one we produced earlier "by hand" since they are the same model.
+#' earlier, scaling by the mean and sd of the data) and plot the fitted model
+#' with the data. This plot is exactly the same as the one we produced earlier
+#' "by hand" since they are the same model.
 
 npred <- predict(modnn1, x)
 preds <- cbind(grid_data, richness=npred)
 ants |> 
     ggplot() +
     geom_line(data=preds, 
-              aes(x=latitude, y=richness, col=elevation, group=factor(elevation)),
+              aes(x=latitude, y=richness, col=elevation,
+                  group=factor(elevation)),
               linetype=2) +
     geom_point(aes(x=latitude, y=richness, col=elevation)) +
     facet_wrap(vars(habitat)) +
