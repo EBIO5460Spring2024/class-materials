@@ -188,29 +188,7 @@ Hint: don't start from scratch, just add a few lines of code here and there wher
 
 #### Part 3. Neural networks in practical use
 
-First, get your computer setup with tensorflow and keras. You have already installed miniconda. For most people, you should be able to install everything following the official installation directions. This amounts to starting R and running this:
-
-```R
-install.packages("keras")
-keras::install_keras(method = "conda", python_version = "3.10")
-```
-
-If you find this doesn't work for whatever reason, start up miniconda, and delete the conda environment (`r-tensorflow`) that was created during the automated setup:
-
-```bash
-conda env remove --name r-tensorflow
-```
-
-Then install python, tensorflow, and related packages manually
-
-```bash
-conda create --name r-tensorflow
-conda activate r-tensorflow
-conda install python=3.10 -c conda-forge
-python -m pip install "tensorflow==2.13.*"
-python -m pip install tensorflow-hub tensorflow-datasets
-python -m pip install scipy requests Pillow h5py pandas pydot
-```
+First, get your computer setup with tensorflow and keras. See [07_6_install_keras.md](07_6_install_keras.md) for installing on your local machine (Windows or MacOS), or [08_6_CU_supercomputer.md](08_6_CU_supercomputer.md) for getting set up on the supercomputer.
 
 **Q4\.** Using keras, train and tune a neural network to compare to the boosting algorithm you used above for plant species "nz05".
 
