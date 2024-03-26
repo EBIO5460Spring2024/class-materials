@@ -160,7 +160,7 @@ modnn1.summary()
 
 # Compile and train the model
 modnn1.compile(optimizer="rmsprop", loss="mse")
-history = modnn1.fit(xtrain, ytrain, epochs=300, batch_size=4, initial_epoch=0)
+history = modnn1.fit(xtrain, ytrain, epochs=300, batch_size=4)
 history = pd.DataFrame(history.history)
 
 # To visualize model fit in real time, you can use tensorboard
