@@ -2,6 +2,8 @@
 
 Due Fri 15 Mar
 
+**Email me your selection.**
+
 I have curated a selection of papers in a zotero group library. The papers include case studies and reviews:
 
 * https://www.zotero.org/groups/5444970/machine_learning_ecology_2024/library

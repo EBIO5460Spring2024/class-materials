@@ -13,7 +13,23 @@ Below are assignment due dates and a record of the topics we covered each week t
 | 3 (decision trees, bagging)                                  | 27 Feb |
 | 4 (boosting and neural networks)                             | 4 Apr  |
 | Individual project presentations (finals week, Mon 1:30-4PM) | 6 May  |
-| Individual project code or paper                             | TBA    |
+| Individual project code or paper                             | 9 May  |
+
+
+
+## Discussions
+
+| Lead | Week | Day  | Date... | Paper                                 |
+| ---- | ---- | ---- | ------- | ------------------------------------- |
+| KR   | 11   | Tue  | 2 Apr   | Kittlein et al (2022). Deep learning and satellite imagery predict genetic diversity and differentiation. |
+| LO   | 11   | Thu  | 4 Apr   | Ferreira et al (2020). Deep learning-based methods for individual recognition in small birds. |
+| RB   | 12   | Thu  | 11 Apr  | Jensen et al (2024). Knowing a fellow by their bellow: acoustic individuality in the bellows of the American alligator. |
+| MZ   | 13   | Tue  | 16 Apr  | Zou et al (2022). Classification of bacterial plasmid and chromosome derived sequences using machine learning. |
+| BH   | 13   | Thu  | 18 Apr  | Albert et al (2017). Climate controls over ecosystem metabolism: insights from a fifteen-year inductive artificial neural network synthesis for a subalpine forest. |
+| JD   | 14   | Tue  | 23 Apr  | Wang et al (2024). Identifying keystone species in microbial communities using deep learning. |
+| NH   | 14   | Thu  | 25 Apr  | Blischak et al (2021). Chromosome-scale inference of hybrid speciation and admixture with convolutional neural networks. |
+| AV   | 15   | Tue  | 30 Apr  | Equihua et al (2024). Connectivity conservation planning through deep reinforcement learning. |
+| MO   | 15   | Thu  | 2 May   | Lamperti et al (2023). New deep learning-based methods for visualizing ecosystem properties using environmental DNA metabarcoding data. |
 
 
 
@@ -77,3 +93,52 @@ Below are assignment due dates and a record of the topics we covered each week t
 * Parallel processing
 * Using a compute server
 
+
+
+## Week 6
+
+* Model algorithms
+  * Ensemble algorithm: boosted trees
+* Training algorithms
+  * Gradient descent
+  * Stochastic gradient descent
+  * Gradient boosting
+  * Stochastic gradient boosting
+  * Extreme gradient boosting, XGBoost
+* Inference algorithms
+  * Tuning strategies for multiple hyperparameters
+* One hot encoding for categorical variables
+
+
+
+## Week 7
+
+* Model algorithms
+  * Single layer neural networks
+  * Architectures for regression, classification, multifunction
+  * Deep learning: multilayer neural networks
+  * Wide vs deep, expressiveness
+* Training algorithm
+  * Mini-batch stochastic gradient descent
+  * Using Keras library
+
+
+
+## Week 8
+
+* Model algorithms
+  * Deep learning: convolutional neural networks
+* Training algorithms
+  * Dropout regularization
+  * Train-validate-test split
+* Generalization & importance of data
+  * Scope of inference
+  * Test set leakage
+  * Transfer learning, pre-trained models
+
+
+
+## Weeks 9-15
+
+* Reading and discussion: contemporary and emerging applications in ecology
+* Individual project
