@@ -91,23 +91,20 @@ A text heavily influencing the way I think about the broader topic of data scien
 
 Paperback versions of just about any Springer text can be purchased by University of Colorado students for $25 each. To purchase, do a Chinook search via the CU library (you must be on the campus network or via VPN, not the guest wifi), follow the link to the ebook version, and look for the Springer offer to buy the paperback version. Be aware however that these versions are not in color, which is certainly an issue for interpreting plots!
 
-
-
 #### Grading & assessment scheme
-Github portfolio of assignment code commits **35%**
+Assignments **35%**
 
-Present and lead discussion of contemporary papers from the literature **20%**
+Discussion papers (written reflection and participation) **20%**
 
-Participation and peer reviews **10%**
+Present and lead discussion of a contemporary paper **10%**
 
-Individual assignment presentation **35%**
+Individual assignment **35%**
 
+* Exam week presentation 15%, submitted work 20%
 * Choose between a data project or a literature synthesis project
 
-
-
 #### Exams
-There will not be an exam. This material is not suited to exams.
+Presentation of individual project (see above).
 
 #### GitHub
 Almost everything will be on Github rather than Canvas. I have set up a GitHub organization that is restricted to our class (i.e. your individual repositories are not public). Bookmark this URL:
