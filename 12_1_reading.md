@@ -1,6 +1,6 @@
 
 
-#### Discussion papers for week 11
+#### Discussion papers for week 12
 
 You need to read the paper plus submit a small written reflection (except for the discussion leader). The reflection should be **pushed to github before class**.  You won't get credit for the discussion unless you push to github before class. The reflection should include your thoughts on each of the questions under "questions to consider" below. It can be very brief and in bullet-point form but feel free to expand if you prefer.
 
@@ -8,15 +8,14 @@ You need to read the paper plus submit a small written reflection (except for th
 
 **Tuesday**
 
-* Leader: KR
-* Kittlein et al (2022). Deep learning and satellite imagery predict genetic diversity and differentiation. Methods in Ecology and Evolution 13:711-721. https://doi.org/10.1111/2041-210X.13775.
+* Individual project meetings. I will send an email with the meeting schedule.
 
 
 
 **Thursday**
 
-* Leader: LO
-* Ferreira et al (2020). Deep learning-based methods for individual recognition in small birds. Methods in Ecology and Evolution 11:1072-1085. https://doi.org/10.1111/2041-210X.13436.
+* Leader: RB
+* Jensen et al (2024). Knowing a fellow by their bellow: acoustic individuality in the bellows of the American alligator. Animal Behaviour 207:157-167. https://doi.org/10.1016/j.anbehav.2023.11.009.
 
 
 
@@ -25,7 +24,7 @@ You need to read the paper plus submit a small written reflection (except for th
   * What is the general prediction goal of the model(s) in this paper?
   * Describe the response (predicted) variable
   * Describe the predictor variables and any feature engineering (e.g. transformations, augmentation)
-  * What are the training and test data?
+  * What are the training and test data? Are they sufficiently independent?
   * Describe the model algorithm used (e.g. architecture of NN)
   * How did they train, tune, and evaluate the model? (incl. what hyperparameters were tuned)
   * Is this an approach that wouldn't be possible without machine learning and how was it advantageous to use this specific machine learning method?
@@ -33,10 +32,6 @@ You need to read the paper plus submit a small written reflection (except for th
   * 2-3 other bullet points, which might be insights or questions you want to raise in the discussion
 
 
-
-**Consider possible data design issues**
-
-* For Tuesday's paper (Kittlein et al): consider the possibility of test-set leakage. Is the test dataset sufficiently isolated from the training dataset?
 
 
 

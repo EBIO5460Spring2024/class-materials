@@ -19,10 +19,11 @@ Below are assignment due dates and a record of the topics we covered each week t
 
 ## Discussions
 
-| Lead | Week | Day  | Date... | Paper                                 |
+| Lead | Week | Day  | Date... | Paper                                                        |
 | ---- | ---- | ---- | ------- | ------------------------------------- |
 | KR   | 11   | Tue  | 2 Apr   | Kittlein et al (2022). Deep learning and satellite imagery predict genetic diversity and differentiation. |
 | LO   | 11   | Thu  | 4 Apr   | Ferreira et al (2020). Deep learning-based methods for individual recognition in small birds. |
+|      | 12   | Tue  | 9 Apr   | Short individual meetings about project. |
 | RB   | 12   | Thu  | 11 Apr  | Jensen et al (2024). Knowing a fellow by their bellow: acoustic individuality in the bellows of the American alligator. |
 | MZ   | 13   | Tue  | 16 Apr  | Zou et al (2022). Classification of bacterial plasmid and chromosome derived sequences using machine learning. |
 | BH   | 13   | Thu  | 18 Apr  | Albert et al (2017). Climate controls over ecosystem metabolism: insights from a fifteen-year inductive artificial neural network synthesis for a subalpine forest. |
