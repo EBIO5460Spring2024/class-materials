@@ -27,7 +27,7 @@ Below are assignment due dates and a record of the topics we covered each week t
 | RB   | 12   | Thu  | 11 Apr   | Jensen et al (2024). Knowing a fellow by their bellow: acoustic individuality in the bellows of the American alligator. |
 | MZ   | 13   | Tue  | 16 Apr   | Zou et al (2022). Classification of bacterial plasmid and chromosome derived sequences using machine learning. |
 | JD   | 13   | Thu  | 18 Apr   | Wang et al (2024). Identifying keystone species in microbial communities using deep learning. |
-|      | 14   | Tue  | 23 Apr   | Short individual meetings about project.                     |
+| BH   | 14   | Tue  | 23 Apr   | Albert et al (2017). Climate controls over ecosystem metabolism: insights from a fifteen-year inductive artificial neural network synthesis for a subalpine forest. |
 | NH   | 14   | Thu  | 25 Apr   | Blischak et al (2021). Chromosome-scale inference of hybrid speciation and admixture with convolutional neural networks. |
 | AV   | 15   | Tue  | 30 Apr   | Equihua et al (2024). Connectivity conservation planning through deep reinforcement learning. |
 | MO   | 15   | Thu  | 2 May    | Lamperti et al (2023). New deep learning-based methods for visualizing ecosystem properties using environmental DNA metabarcoding data. |
