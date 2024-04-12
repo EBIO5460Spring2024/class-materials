@@ -1,6 +1,6 @@
 
 
-#### Discussion papers for week 12
+#### Discussion papers for week 13
 
 You need to read the paper plus submit a small written reflection (except for the discussion leader). The reflection should be **pushed to github before class**.  You won't get credit for the discussion unless you push to github before class. The reflection should include your thoughts on each of the questions under "questions to consider" below. It can be very brief and in bullet-point form but feel free to expand if you prefer.
 
@@ -8,14 +8,15 @@ You need to read the paper plus submit a small written reflection (except for th
 
 **Tuesday**
 
-* Individual project meetings. I will send an email with the meeting schedule.
+* Leader: MZ
+* Zou et al (2022). Classification of bacterial plasmid and chromosome derived sequences using machine learning. PLOS ONE 17:e0279280. https://doi.org/10.1371/journal.pone.0279280.
 
 
 
 **Thursday**
 
-* Leader: RB
-* Jensen et al (2024). Knowing a fellow by their bellow: acoustic individuality in the bellows of the American alligator. Animal Behaviour 207:157-167. https://doi.org/10.1016/j.anbehav.2023.11.009.
+* Leader: JD
+* Wang et al (2024). Identifying keystone species in microbial communities using deep learning. Nature Ecology & Evolution 8:22-31. https://doi.org/10.1038/s41559-023-02250-2.
 
 
 
